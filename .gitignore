@@ -1,0 +1,4 @@
+logs/
+*.conf.compiled
+/.tup/
+dryfhir.sublime*

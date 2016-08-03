@@ -1,0 +1,1 @@
+: foreach *.lua |> busted --exclude-tags=disabled spec/tests.lua |>
