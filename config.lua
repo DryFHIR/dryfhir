@@ -1,7 +1,7 @@
 -- config.lua
 local config = require("lapis.config")
 
-config({"development", "heroku", "test", "prod"}, {
+config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
   email_enabled = false,
   secret = "not-set-yet",
   session_name = "dryfhir_session",
@@ -12,7 +12,7 @@ config({"development", "heroku", "test", "prod"}, {
   },
   postgres = {
     backend = "pgmoon",
-    host = "127.0.0.1",
+    host = "db",
     port = "5432",
     user = "postgres",
     database = "fhirbase",
@@ -22,6 +22,11 @@ config({"development", "heroku", "test", "prod"}, {
 
 config("development", {
   port = 8080,
+  print_stack_to_browser = true
+})
+
+config("dockerdev", {
+  port = 80,
   print_stack_to_browser = true
 })
 
@@ -39,7 +44,8 @@ config("test", {
   print_stack_to_browser = true
 })
 
-config("prod", {
+config({"prod", "dockerprod"}, {
+  port = 80,
   logging = {
     queries = false,
     requests = true
@@ -50,7 +56,7 @@ config("prod", {
 
 -- template responses
 
-config({"development", "heroku", "test", "prod"}, {
+config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
   canned_responses = {
     handle_404 = {
     {
