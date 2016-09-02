@@ -12,12 +12,24 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
   },
   postgres = {
     backend = "pgmoon",
-    host = "db",
     port = "5432",
-    user = "postgres",
     database = "fhirbase",
   },
   print_stack_to_browser = false
+})
+
+config({"development", "heroku", "test", "prod"}, {
+  postgres = {
+    host = "127.0.0.1",
+    user = "postgres",
+  }
+})
+
+config({"dockerdev", "dockerprod"}, {
+  postgres = {
+    host = "db",
+    user = "fhirbase",
+  }
 })
 
 config("development", {
