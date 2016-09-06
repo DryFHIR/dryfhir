@@ -22,14 +22,16 @@ config({"development", "heroku", "test", "prod"}, {
   postgres = {
     host = "127.0.0.1",
     user = "postgres",
-  }
+  },
+  resolver_string = ""
 })
 
 config({"dockerdev", "dockerprod"}, {
   postgres = {
     host = "db",
     user = "fhirbase",
-  }
+  },
+  resolver_string = "resolver 127.0.0.11;"
 })
 
 config("development", {
