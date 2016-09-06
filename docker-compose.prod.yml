@@ -1,0 +1,6 @@
+version: "2"
+services:
+   dryfhir:
+      ports:
+         - "80:80"
+      command: ["server", "dockerprod"]

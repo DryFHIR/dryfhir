@@ -1,0 +1,12 @@
+version: "2"
+volumes:
+   data:
+services:
+   db:
+      image: dryfhir/fhirbase-postgres-plv8:latest
+      volumes:
+         - "data:/var/lib/postgresql/data"
+   dryfhir:
+      image: dryfhir/dryfhir:latest
+      links:
+         - db
