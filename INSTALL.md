@@ -18,14 +18,15 @@ sudo service postgresql restart
 # create a default user and database for the user
 sudo -u postgres createuser -s $(whoami); createdb $(whoami)
 
-# create a database named fhirbase
-createdb fhirbase
+# create a database named fhirbase (for normal use) and fhirbase-test (for running busted tests)
+createdb fhirbase && createdb fhirbase-test
 
 # load up the fhirbase data into a database named fhirbase
 # check if 1.4.0 is still latest fhirbase release before running this
 wget https://github.com/fhirbase/fhirbase-plv8/releases/download/v1.4.0.0/fhirbase-1.4.0.0.sql.zip
 unzip fhirbase-1.4.0.0.sql.zip
 cat fhirbase-1.4.0.0.sql | psql fhirbase
+cat fhirbase-1.4.0.0.sql | psql fhirbase-test
 ```
 
 Using Docker
