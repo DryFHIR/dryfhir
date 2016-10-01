@@ -30,8 +30,10 @@ end
 local types = {
   ["application/json"]      = "json",
   ["application/json+fhir"] = "json",
+  ["application/fhir+json"] = "json",
   ["application/xml"]       = "xml",
   ["application/xml+fhir"]  = "xml",
+  ["application/fhir+xml"]  = "xml",
   ["html"]                  = "xml",
   ["json"]                  = "json",
   ["text/html"]             = "xml",
@@ -39,8 +41,8 @@ local types = {
   ["xml"]                   = "xml",
 }
 local from_types = {
-  json = "application/json+fhir",
-  xml = "application/xml+fhir"
+  json = "application/fhir+json",
+  xml = "application/fhir+xml"
 }
 
 -- determine content type from headers or optionally the resource
@@ -58,6 +60,7 @@ local function get_resource_type(content_type, resource)
 end
 
 local function read_resource(resource)
+  print("XXX ", ngx.req.get_headers()["content-type"], get_resource_type(ngx.req.get_headers()["content-type"], resource))
   if get_resource_type(ngx.req.get_headers()["content-type"], resource) == "xml" then
     return from_json(to_fhir_json(resource))
   end

@@ -49,7 +49,7 @@ describe("DryFHIR", function()
     setup(function()
         local sent_resource = tablex.deepcopy(generic_small_resource)
 
-        local status, received_resource_json = request("/Patient", {post = to_json(sent_resource), headers = {["Content-Type"] = "application/json+fhir"}})
+        local status, received_resource_json = request("/Patient", {post = to_json(sent_resource), headers = {["Content-Type"] = "application/fhir+json"}})
 
         local received_resource = from_json(received_resource_json)
 
@@ -80,7 +80,7 @@ describe("DryFHIR", function()
         -- PUT [base]/[type]/[id]
 
         local sent_resource = tablex.deepcopy(generic_small_resource)
-        local status, body = request("/Patient/1", {put = to_json(sent_resource), headers = {["Content-Type"] = "application/json+fhir"}})
+        local status, body = request("/Patient/1", {put = to_json(sent_resource), headers = {["Content-Type"] = "application/fhir+json"}})
 
         assert.same(200, status)
       end)
@@ -104,7 +104,7 @@ describe("DryFHIR", function()
 
         local sent_resource = tablex.deepcopy(generic_small_resource)
 
-        local status, received_resource_json = request("/Patient", {post = to_json(sent_resource), headers = {["Content-Type"] = "application/json+fhir"}})
+        local status, received_resource_json = request("/Patient", {post = to_json(sent_resource), headers = {["Content-Type"] = "application/fhir+json"}})
 
         local received_resource = from_json(received_resource_json)
         -- check if sent_resource is a subset of received_resource instead, perhaps?
@@ -141,7 +141,7 @@ describe("DryFHIR", function()
 
     it("should have a working search operation via GET", function()
         -- GET [base]/[type]
-        local status, body = request("/Patient", {method = "GET", headers = {["Content-Type"] = "application/json+fhir"}})
+        local status, body = request("/Patient", {method = "GET", headers = {["Content-Type"] = "application/fhir+json"}})
 
         assert.same(200, status)
         assert.truthy(body:match("%f[%a]searchset%f[%A]"))
