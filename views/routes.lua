@@ -60,7 +60,6 @@ local function get_resource_type(content_type, resource)
 end
 
 local function read_resource(resource)
-  print("XXX ", ngx.req.get_headers()["content-type"], get_resource_type(ngx.req.get_headers()["content-type"], resource))
   if get_resource_type(ngx.req.get_headers()["content-type"], resource) == "xml" then
     return from_json(to_fhir_json(resource))
   end
