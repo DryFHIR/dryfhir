@@ -155,7 +155,7 @@ describe("DryFHIR", function()
         local status, body = request("/Patient/_search", {method = "POST"})
 
         assert.same(200, status)
-        assert.truthy(body:match("%f[%a]search%f[%A]"))
+        assert.truthy(body:match("%f[%a]searchset%f[%A]"))
         assert.truthy(body:match("Patient"))
       end)
 
