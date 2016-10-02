@@ -83,7 +83,12 @@ end
 local function make_response(resource)
   local desired_fhir_type = get_resource_type(ngx.req.get_headers()["accept"])
 
-  return {save_resource(resource, desired_fhir_type), layout = false, content_type = make_return_content_type(desired_fhir_type)}
+  local http_status_code
+  if resource and resource.resourceType == "OperationOutcome" then
+    http_status_code = resource.issue[1].code
+  end
+
+  return {save_resource(resource, desired_fhir_type), layout = false, content_type = make_return_content_type(desired_fhir_type), status = http_status_code}
 end
 
 routes.metadata = function ()
