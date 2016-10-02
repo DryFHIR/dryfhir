@@ -20,6 +20,7 @@ local to_json     = require("lapis.util").to_json
 local from_json   = require("lapis.util").from_json
 local to_fhir_json = require("fhirformats").to_json
 local to_fhir_xml = require("fhirformats").to_xml
+local inspect     = require("inspect")
 
 local routes = {}
 
@@ -85,9 +86,8 @@ end
 local function make_response(resource, http_status_code)
   local desired_fhir_type = get_resource_type(ngx.req.get_headers()["accept"])
 
-  local http_status_code
-  if resource and resource.resourceType == "OperationOutcome" then
-    http_status_code = resource.issue[1].code
+  if resource and resource.resourceType == "OperationOutcome" and resource.issue[1].extension then
+    http_status_code = resource.issue[1].extension[1].code
   end
 
   return {save_resource(resource, desired_fhir_type), layout = false, content_type = make_return_content_type(desired_fhir_type), status = (http_status_code and http_status_code or 200)}
