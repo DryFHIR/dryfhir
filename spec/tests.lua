@@ -148,6 +148,9 @@ describe("DryFHIR", function()
         assert.same(200, status)
         assert.truthy(body:match("%f[%a]searchset%f[%A]"))
         assert.truthy(body:match("Patient"))
+
+        -- check that DryFHIR pads the results with fullUrl's that fhirbase doesn't provide
+        assert.truthy(body:match("%f[%a]fullUrl%f[%A]"))
       end)
 
     it("should have a working search operation via POST", function()
@@ -157,6 +160,9 @@ describe("DryFHIR", function()
         assert.same(200, status)
         assert.truthy(body:match("%f[%a]searchset%f[%A]"))
         assert.truthy(body:match("Patient"))
+
+        -- check that DryFHIR pads the results with fullUrl's that fhirbase doesn't provide
+        assert.truthy(body:match("%f[%a]fullUrl%f[%A]"))
       end)
 
     it("should have a working conformance operation via GET", function()

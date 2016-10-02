@@ -185,7 +185,20 @@ routes.search = function(self)
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, queryString = self.req.parsed_url.query}))
 
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function))
+  -- fill in the fullUrl fields in the Bundle response
+  local base_url = get_base_url(self)
+  local bundle = unpickle_fhirbase_result(res, operation.fhirbase_function)
+  -- only do this for a resource that was created - ignore OperationOutcome resources
+  if bundle.resourceType == "Bundle" then
+    for i = 1, #bundle.entry do
+      local found_resource = bundle.entry[i].resource
+      local full_url = string.format("%s/%s/%s", base_url, found_resource.resourceType, found_resource.id)
+
+      bundle.entry[i].fullUrl = full_url
+    end
+  end
+
+  return make_response(bundle)
 end
 
 return routes
