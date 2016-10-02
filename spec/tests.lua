@@ -104,7 +104,7 @@ describe("DryFHIR", function()
 
         local sent_resource = tablex.deepcopy(generic_small_resource)
 
-        local status, received_resource_json = request("/Patient", {post = to_json(sent_resource), headers = {["Content-Type"] = "application/fhir+json"}})
+        local status, received_resource_json, headers = request("/Patient", {post = to_json(sent_resource), headers = {["Content-Type"] = "application/fhir+json"}})
 
         local received_resource = from_json(received_resource_json)
         -- check if sent_resource is a subset of received_resource instead, perhaps?
@@ -115,6 +115,8 @@ describe("DryFHIR", function()
         assert.same(sent_resource, received_resource)
 
         assert.same(201, status)
+
+        assert.truthy(headers.Location)
       end)
 
     it("should have a working read operation", function()

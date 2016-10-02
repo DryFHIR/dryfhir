@@ -81,6 +81,13 @@ local function make_return_content_type(fhir_type)
   return from_types[fhir_type] or from_types.json
 end
 
+-- returns the servers base url, based on a URL that was sent to it
+local function get_base_url(self)
+  local parsed_url = self.req.parsed_url
+  local base_url = parsed_url.scheme .. '://' .. parsed_url.host.. ((parsed_url.port == nil or parsed_url.port == 80 or parsed_url.port == 443) and "" or ':'.. parsed_url.port)
+  return base_url
+end
+
 -- given a resource and desired http status code, creates a response in the right output format (xml or json) with the correct http headers
 -- desired http status code will be overwritten if there is an error
 local function make_response(resource, http_status_code, headers)
@@ -112,7 +119,17 @@ routes.create_resource = function(self)
   local wrapped_data = {resource = data}
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json(wrapped_data))
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 201, {Location = })
+
+  -- get the base URL and construct a Location header
+  local Location
+  local base_url = get_base_url(self)
+  local resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
+  -- only do this for a resource that was created - ignore OperationOutcome resources
+  if resource.meta then
+    Location = string.format("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
+  end
+
+  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 201, {Location = Location})
 end
 
 routes.read_resource = function(self)
