@@ -114,7 +114,7 @@ describe("DryFHIR", function()
 
         assert.same(sent_resource, received_resource)
 
-        assert.same(200, status)
+        assert.same(201, status)
       end)
 
     it("should have a working read operation", function()
@@ -124,7 +124,7 @@ describe("DryFHIR", function()
 
         -- create a patient
         local status, received_resource_json = request("/Patient", {post = to_json(sent_resource)})
-        assert.same(200, status)
+        assert.same(201, status)
 
         -- pull new id out
         local resource_id = from_json(received_resource_json).id

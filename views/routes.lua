@@ -80,7 +80,9 @@ local function make_return_content_type(fhir_type)
   return from_types[fhir_type] or from_types.json
 end
 
-local function make_response(resource)
+-- given a resource and desired http status code, creates a response in the right output format (xml or json) with the correct http headers
+-- desired http status code will be overwritten if there is an error
+local function make_response(resource, http_status_code)
   local desired_fhir_type = get_resource_type(ngx.req.get_headers()["accept"])
 
   local http_status_code
@@ -88,7 +90,7 @@ local function make_response(resource)
     http_status_code = resource.issue[1].code
   end
 
-  return {save_resource(resource, desired_fhir_type), layout = false, content_type = make_return_content_type(desired_fhir_type), status = http_status_code}
+  return {save_resource(resource, desired_fhir_type), layout = false, content_type = make_return_content_type(desired_fhir_type), status = (http_status_code and http_status_code or 200)}
 end
 
 routes.metadata = function ()
@@ -110,7 +112,7 @@ routes.create_resource = function(self)
   local wrapped_data = {resource = data}
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json(wrapped_data))
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function))
+  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 201)
 end
 
 routes.read_resource = function(self)
