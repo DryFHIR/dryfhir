@@ -86,6 +86,10 @@ describe("DryFHIR", function()
 
         assert.same(200, status)
         assert.truthy(headers["Last-Modified"])
+
+        local new_resource_version = from_json(body).meta.versionId
+        assert.truthy(string.find(headers.Location, sformat("Patient/%s/_history/%s", existing_resource_id, new_resource_version), 1, true))
+
         assert.truthy(headers["ETag"])
 
         local new_resource_version = from_json(body).meta.versionId
