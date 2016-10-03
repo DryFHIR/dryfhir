@@ -84,6 +84,7 @@ describe("DryFHIR", function()
         local status, body, headers = request("/Patient/"..existing_resource_id, {post = to_json(sent_resource), method = "PUT", headers = {["Content-Type"] = "application/fhir+json"}})
 
         assert.same(200, status)
+        assert.truthy(headers["Last-Modified"])
       end)
 
     it("should should fail an update operation without content", function()

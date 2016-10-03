@@ -21,6 +21,7 @@ local from_json   = require("lapis.util").from_json
 local to_fhir_json = require("fhirformats").to_json
 local to_fhir_xml = require("fhirformats").to_xml
 local inspect     = require("inspect")
+local date        = require("date")
 
 local routes = {}
 
@@ -161,7 +162,16 @@ routes.update_resource = function(self)
   local wrapped_data = {resource = data}
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json(wrapped_data))
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function))
+
+  -- construct the appropriate Last-Modified  header
+  local last_modified
+  local resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
+  -- only do this for a resource that was created - ignore OperationOutcome resources
+  if resource.meta then
+    last_modified = date(resource.meta.lastUpdated):fmt("${http}")
+  end
+
+  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 200, {["Last-Modified"] = last_modified})
 end
 
 routes.delete_resource = function(self)
