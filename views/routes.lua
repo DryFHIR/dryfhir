@@ -186,22 +186,8 @@ routes.delete_resource = function(self)
   return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function))
 end
 
-routes.get_resource_history = function(self)
-  local operation = {name = "delete", definition = "https://hl7-fhir.github.io/http.html#history", fhirbase_function = "fhir_resource_history"}
-
-  local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
-
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function))
-end
-
-routes.search = function(self)
-  local operation = {name = "search", definition = "http://hl7.org/fhir/http.html#search", fhirbase_function = "fhir_search"}
-
-  local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, queryString = self.req.parsed_url.query}))
-
-  -- fill in the fullUrl fields in the Bundle response
+local function populate_bundle_fullUrls(self, bundle)
   local base_url = get_base_url(self)
-  local bundle = unpickle_fhirbase_result(res, operation.fhirbase_function)
   -- only do this for a resource that was created - ignore OperationOutcome resources
   if bundle.resourceType == "Bundle" then
     for i = 1, #bundle.entry do
@@ -211,6 +197,32 @@ routes.search = function(self)
       bundle.entry[i].fullUrl = full_url
     end
   end
+
+  return bundle
+end
+
+routes.get_resource_history = function(self)
+  local operation = {name = "delete", definition = "https://hl7-fhir.github.io/http.html#history", fhirbase_function = "fhir_resource_history"}
+
+  local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
+
+  local bundle = unpickle_fhirbase_result(res, operation.fhirbase_function)
+
+  -- fill in the fullUrl fields in the Bundle response
+  bundle = populate_bundle_fullUrls(self, bundle)
+
+  return make_response(bundle)
+end
+
+routes.search = function(self)
+  local operation = {name = "search", definition = "http://hl7.org/fhir/http.html#search", fhirbase_function = "fhir_search"}
+
+  local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, queryString = self.req.parsed_url.query}))
+
+  local bundle = unpickle_fhirbase_result(res, operation.fhirbase_function)
+
+  -- fill in the fullUrl fields in the Bundle response
+  bundle = populate_bundle_fullUrls(self, bundle)
 
   return make_response(bundle)
 end

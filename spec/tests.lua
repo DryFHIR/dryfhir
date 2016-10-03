@@ -64,6 +64,9 @@ describe("DryFHIR", function()
 
         assert.same(200, status)
         assert.truthy(body:match("%f[%a]history%f[%A]"))
+
+        -- check that DryFHIR pads the results with fullUrl's that fhirbase doesn't provide
+        assert.truthy(body:match("%f[%a]fullUrl%f[%A]"))
       end)
 
     it("should have a working #vread operation", function()
