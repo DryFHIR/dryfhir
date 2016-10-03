@@ -22,6 +22,7 @@ local to_fhir_json = require("fhirformats").to_json
 local to_fhir_xml = require("fhirformats").to_xml
 local inspect     = require("inspect")
 local date        = require("date")
+local sformat = string.format
 
 local routes = {}
 
@@ -127,7 +128,7 @@ routes.create_resource = function(self)
   local resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
   -- only do this for a resource that was created - ignore OperationOutcome resources
   if resource.meta then
-    Location = string.format("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
+    Location = sformat("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
   end
 
   return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 201, {Location = Location})
@@ -163,15 +164,16 @@ routes.update_resource = function(self)
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json(wrapped_data))
 
-  -- construct the appropriate Last-Modified  header
-  local last_modified
+  -- construct the appropriate Last-Modified & ETag headers
+  local last_modified, etag
   local resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
   -- only do this for a resource that was created - ignore OperationOutcome resources
   if resource.meta then
     last_modified = date(resource.meta.lastUpdated):fmt("${http}")
+    etag = sformat('W/"%s"', resource.meta.versionId)
   end
 
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 200, {["Last-Modified"] = last_modified})
+  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 200, {["Last-Modified"] = last_modified, ["ETag"] = etag})
 end
 
 routes.delete_resource = function(self)
@@ -202,7 +204,7 @@ routes.search = function(self)
   if bundle.resourceType == "Bundle" then
     for i = 1, #bundle.entry do
       local found_resource = bundle.entry[i].resource
-      local full_url = string.format("%s/%s/%s", base_url, found_resource.resourceType, found_resource.id)
+      local full_url = sformat("%s/%s/%s", base_url, found_resource.resourceType, found_resource.id)
 
       bundle.entry[i].fullUrl = full_url
     end

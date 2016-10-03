@@ -20,6 +20,7 @@ local request         = require("lapis.spec.server").request
 local tablex          = require("pl.tablex")
 local to_json         = require("lapis.util").to_json
 local use_test_server = require("lapis.spec").use_test_server
+local sformat         = string.format
 
 describe("DryFHIR", function()
     use_test_server()
@@ -85,6 +86,10 @@ describe("DryFHIR", function()
 
         assert.same(200, status)
         assert.truthy(headers["Last-Modified"])
+        assert.truthy(headers["ETag"])
+
+        local new_resource_version = from_json(body).meta.versionId
+        assert.same(sformat('W/"%s"', new_resource_version), headers["ETag"])
       end)
 
     it("should should fail an #update operation without content", function()
