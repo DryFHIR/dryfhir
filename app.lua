@@ -45,8 +45,7 @@ app:enable("etlua")
 app:match("homepage", "(/)", respond_to({
   GET = function()
     return "<h1>Welcome to DryFHIR! The server is still under development, please check back later.</h1>"
-  end,
-  OPTIONS = routes.metadata
+  end
 }))
 
 app:match("/console", console.make())
