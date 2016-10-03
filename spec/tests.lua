@@ -176,17 +176,6 @@ describe("DryFHIR", function()
         assert.same(resource.resourceType, "Conformance")
       end)
 
-    it("should have a working conformance operation via OPTIONS", function()
-        -- OPTIONS [base] {?_format=[mime-type]}
-        local status, body = request("", {method = "OPTIONS"})
-
-        assert.same(200, status)
-
-        local resource = from_json(body)
-        assert.truthy(resource.resourceType)
-        assert.same(resource.resourceType, "Conformance")
-      end)
-
     it("should return a 400 OperationOutcome on an invalid URL", function()
         local status, body = request("/dfdfdf/adfdfdf/dfddf")
 
