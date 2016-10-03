@@ -57,7 +57,7 @@ describe("DryFHIR", function()
         existing_resource = received_resource
       end)
 
-    it("should have a resource history operation", function()
+    it("should have a resource #history operation", function()
         -- GET [base]/[type]/[id]/_history/[vid]
         local status, body = request("/Patient/"..existing_resource_id.."/_history/")
 
@@ -65,7 +65,7 @@ describe("DryFHIR", function()
         assert.truthy(body:match("%f[%a]history%f[%A]"))
       end)
 
-    it("should have a working vread operation", function()
+    it("should have a working #vread operation", function()
         -- GET [base]/[type]/[id]/_history/[vid]
 
         local status, body = request("/Patient/"..existing_resource_id.."/_history/")
@@ -77,7 +77,7 @@ describe("DryFHIR", function()
         assert.truthy(from_json(body).meta.versionId == existing_resource_version)
       end)
 
-    it("should have a working update operation", function()
+    it("should have a working #update operation", function()
         -- PUT [base]/[type]/[id]
 
         local sent_resource = tablex.deepcopy(existing_resource)
@@ -87,21 +87,21 @@ describe("DryFHIR", function()
         assert.truthy(headers["Last-Modified"])
       end)
 
-    it("should should fail an update operation without content", function()
+    it("should should fail an #update operation without content", function()
         -- PUT [base]/[type]/[id]
         local status, body = request("/Patient/1", {method = "PUT"})
 
         assert.same(400, status)
       end)
 
-    it("should have a working delete operation", function()
+    it("should have a working #delete operation", function()
         -- DELETE [base]/[type]/[id]
         local status, body = request("/Patient/"..existing_resource_id, {method = "DELETE"})
 
         assert.same(200, status)
       end)
 
-    it("should have a working create operation", function()
+    it("should have a working #create operation", function()
         -- POST [base]/[type]
 
         local sent_resource = tablex.deepcopy(generic_small_resource)
@@ -121,7 +121,7 @@ describe("DryFHIR", function()
         assert.truthy(headers.Location)
       end)
 
-    it("should have a working read operation", function()
+    it("should have a working #read operation", function()
         -- GET [base]/[type]/[id]
 
         local sent_resource = tablex.deepcopy(generic_small_resource)
@@ -143,7 +143,7 @@ describe("DryFHIR", function()
         assert.same(200, status)
       end)
 
-    it("should have a working search operation via GET", function()
+    it("should have a working #search operation via GET", function()
         -- GET [base]/[type]
         local status, body = request("/Patient", {method = "GET", headers = {["Content-Type"] = "application/fhir+json"}})
 
@@ -155,7 +155,7 @@ describe("DryFHIR", function()
         assert.truthy(body:match("%f[%a]fullUrl%f[%A]"))
       end)
 
-    it("should have a working search operation via POST", function()
+    it("should have a working #search operation via POST", function()
         -- POST [base]/[type]/_search
         local status, body = request("/Patient/_search", {method = "POST"})
 
@@ -167,7 +167,7 @@ describe("DryFHIR", function()
         assert.truthy(body:match("%f[%a]fullUrl%f[%A]"))
       end)
 
-    it("should have a working conformance operation via GET", function()
+    it("should have a working #conformance operation via GET", function()
         -- GET [base]/metadata {?_format=[mime-type]}
         local status, body = request("/metadata", {method = "GET"})
 
