@@ -44,7 +44,7 @@ describe("DryFHIR", function()
       active = true
     }
 
-    local existing_resource_id
+    local existing_resource, existing_resource_id
 
     setup(function()
         local sent_resource = tablex.deepcopy(generic_small_resource)
@@ -54,6 +54,7 @@ describe("DryFHIR", function()
         local received_resource = from_json(received_resource_json)
 
         existing_resource_id = received_resource.id
+        existing_resource = received_resource
       end)
 
     it("should have a resource history operation", function()
@@ -79,8 +80,8 @@ describe("DryFHIR", function()
     it("should have a working update operation", function()
         -- PUT [base]/[type]/[id]
 
-        local sent_resource = tablex.deepcopy(generic_small_resource)
-        local status, body = request("/Patient/1", {put = to_json(sent_resource), headers = {["Content-Type"] = "application/fhir+json"}})
+        local sent_resource = tablex.deepcopy(existing_resource)
+        local status, body, headers = request("/Patient/"..existing_resource_id, {post = to_json(sent_resource), method = "PUT", headers = {["Content-Type"] = "application/fhir+json"}})
 
         assert.same(200, status)
       end)
