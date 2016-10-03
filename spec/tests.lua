@@ -96,7 +96,7 @@ describe("DryFHIR", function()
 
     it("should have a working delete operation", function()
         -- DELETE [base]/[type]/[id]
-        local status, body = request("/Patient/1", {method = "DELETE"})
+        local status, body = request("/Patient/"..existing_resource_id, {method = "DELETE"})
 
         assert.same(200, status)
       end)
