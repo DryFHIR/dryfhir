@@ -91,8 +91,6 @@ describe("DryFHIR", function()
         assert.truthy(string.find(headers.Location, sformat("Patient/%s/_history/%s", existing_resource_id, new_resource_version), 1, true))
 
         assert.truthy(headers["ETag"])
-
-        local new_resource_version = from_json(body).meta.versionId
         assert.same(sformat('W/"%s"', new_resource_version), headers["ETag"])
       end)
 
@@ -127,7 +125,7 @@ describe("DryFHIR", function()
 
         assert.same(201, status)
 
-        assert.truthy(headers.Location)
+        assert.truthy(string.find(headers.Location, sformat("Patient/%s/_history/%s", received_resource.id, received_resource.meta.versionId), 1, true))
       end)
 
     it("should have a working #read operation", function()
