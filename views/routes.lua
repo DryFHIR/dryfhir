@@ -183,7 +183,7 @@ routes.delete_resource = function(self)
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
 
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function))
+  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 204)
 end
 
 local function populate_bundle_fullUrls(self, bundle)
@@ -192,9 +192,12 @@ local function populate_bundle_fullUrls(self, bundle)
   if bundle.resourceType == "Bundle" then
     for i = 1, #bundle.entry do
       local found_resource = bundle.entry[i].resource
-      local full_url = sformat("%s/%s/%s", base_url, found_resource.resourceType, found_resource.id)
 
-      bundle.entry[i].fullUrl = full_url
+      if found_resource then -- deleted resources in history bundle won't have a resource element, so skip creation of a fullUrl
+        local full_url = sformat("%s/%s/%s", base_url, found_resource.resourceType, found_resource.id)
+
+        bundle.entry[i].fullUrl = full_url
+      end
     end
   end
 
