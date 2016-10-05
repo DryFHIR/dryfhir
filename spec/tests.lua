@@ -129,6 +129,11 @@ describe("DryFHIR", function()
         assert.same(201, status)
 
         assert.truthy(string.find(headers.Location, sformat("Patient/%s/_history/%s", received_resource.id, received_resource.meta.versionId), 1, true))
+
+        assert.truthy(headers["Last-Modified"])
+
+        assert.truthy(headers["ETag"])
+        assert.same(sformat('W/"%s"', received_resource.meta.versionId), headers["ETag"])
       end)
 
     it("should have a working #read operation", function()

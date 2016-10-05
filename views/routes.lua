@@ -122,16 +122,18 @@ routes.create_resource = function(self)
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json(wrapped_data))
 
-  -- get the base URL and construct a Location header
-  local Location
+  -- construct the appropriate Last-Modified, ETag, and Location headers
+  local last_modified, etag, location
   local base_url = get_base_url(self)
   local resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
   -- only do this for a resource that was created - ignore OperationOutcome resources
   if resource.meta then
-    Location = sformat("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
+    last_modified = date(resource.meta.lastUpdated):fmt("${http}")
+    etag = sformat('W/"%s"', resource.meta.versionId)
+    location = sformat("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
   end
 
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 201, {Location = Location})
+  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 201, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
 end
 
 routes.read_resource = function(self)
@@ -195,7 +197,6 @@ local function populate_bundle_fullUrls(self, bundle)
 
       if found_resource then -- deleted resources in history bundle won't have a resource element, so skip creation of a fullUrl
         local full_url = sformat("%s/%s/%s", base_url, found_resource.resourceType, found_resource.id)
-
         bundle.entry[i].fullUrl = full_url
       end
     end
