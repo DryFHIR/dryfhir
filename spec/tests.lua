@@ -15,6 +15,7 @@
 ]]
 
 local from_json       = require("lapis.util").from_json
+local escape          = require("lapis.util").escape
 local inspect         = require("inspect")
 local request         = require("lapis.spec.server").request
 local tablex          = require("pl.tablex")
@@ -56,6 +57,95 @@ describe("DryFHIR", function()
 
         existing_resource_id = received_resource.id
         existing_resource = received_resource
+      end)
+
+    it("should respond with the requested #accept headers", function()
+        -- GET [base]/[type]/[id]
+
+        local status, _, headers = request("/Patient/"..existing_resource_id, {method = "GET", headers = {["Accept"] = "application/fhir+json"}})
+
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "json", 1, true))
+
+        status, _, headers = request("/Patient/"..existing_resource_id, {method = "GET", headers = {["Accept"] = "application/fhir+xml"}})
+
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "xml", 1, true))
+
+        -- json is default, so return that if nothing is provided
+        status, _, headers = request("/Patient/"..existing_resource_id, {method = "GET"})
+
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "json", 1, true))
+
+        -- lastly, ensure charset is preserved
+        status, _, headers = request("/Patient/"..existing_resource_id, {method = "GET", headers = {["Accept"] = "application/fhir+json;charset=UTF-8"}})
+
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "charset=UTF-8", 1, true))
+
+        -- and that it doesn't crash if only charset was provided
+        status, _, headers = request("/Patient/"..existing_resource_id, {method = "GET", headers = {["Accept"] = "charset=UTF-8"}})
+
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "charset=UTF-8", 1, true))
+      end)
+
+    it("should handle the #_format parameter override", function()
+        -- GET [base]/[type]/[id]
+
+        -- test all cases of json+json
+        local status, _, headers = request(sformat("/Patient/%s?%s", existing_resource_id, escape("_format=json")), {method = "GET", headers = {["Accept"] = "application/fhir+json"}})
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "json", 1, true))
+
+        status, _, headers = request(sformat("/Patient/%s?%s", existing_resource_id, escape("_format=application/json")), {method = "GET", headers = {["Accept"] = "application/fhir+json"}})
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "json", 1, true))
+
+        status, _, headers = request(sformat("/Patient/%s?%s", existing_resource_id, escape("_format=application/fhir+json")), {method = "GET", headers = {["Accept"] = "application/fhir+json"}})
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "json", 1, true))
+
+
+        -- test all cases of xml+json
+        status, _, headers = request(sformat("/Patient/%s?%s", existing_resource_id, escape("_format=json")), {method = "GET", headers = {["Accept"] = "application/fhir+xml"}})
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "json", 1, true))
+
+        status, _, headers = request(sformat("/Patient/%s?%s", existing_resource_id, escape("_format=application/json")), {method = "GET", headers = {["Accept"] = "application/fhir+xml"}})
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "json", 1, true))
+
+        status, _, headers = request(sformat("/Patient/%s?%s", existing_resource_id, escape("_format=application/fhir+json")), {method = "GET", headers = {["Accept"] = "application/fhir+xml"}})
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "json", 1, true))
+
+        -- test all cases of json+xml
+        status, _, headers = request(sformat("/Patient/%s?%s", existing_resource_id, escape("_format=xml")), {method = "GET", headers = {["Accept"] = "application/fhir+json"}})
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "xml", 1, true))
+
+        status, _, headers = request(sformat("/Patient/%s?%s", existing_resource_id, escape("_format=application/xml")), {method = "GET", headers = {["Accept"] = "application/fhir+json"}})
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "xml", 1, true))
+
+        status, _, headers = request(sformat("/Patient/%s?%s", existing_resource_id, escape("_format=application/fhir+xml")), {method = "GET", headers = {["Accept"] = "application/fhir+json"}})
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "xml", 1, true))
+
+        -- test all cases of xml+xml
+        status, _, headers = request(sformat("/Patient/%s?%s", existing_resource_id, escape("_format=xml")), {method = "GET", headers = {["Accept"] = "application/fhir+xml"}})
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "xml", 1, true))
+
+        status, _, headers = request(sformat("/Patient/%s?%s", existing_resource_id, escape("_format=application/xml")), {method = "GET", headers = {["Accept"] = "application/fhir+xml"}})
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "xml", 1, true))
+
+        status, _, headers = request(sformat("/Patient/%s?%s", existing_resource_id, escape("_format=application/fhir+xml")), {method = "GET", headers = {["Accept"] = "application/fhir+xml"}})
+        assert.same(200, status)
+        assert.truthy(string.find(headers["Content-Type"], "xml", 1, true))
       end)
 
     it("should have a resource #history operation", function()

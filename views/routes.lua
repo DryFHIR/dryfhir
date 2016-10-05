@@ -17,11 +17,14 @@
 local config      = require("lapis.config").get()
 local db = require("lapis.db")
 local to_json     = require("lapis.util").to_json
+local unescape    = require("lapis.util").unescape
 local from_json   = require("lapis.util").from_json
 local to_fhir_json = require("fhirformats").to_json
 local to_fhir_xml = require("fhirformats").to_xml
 local inspect     = require("inspect")
 local date        = require("date")
+local stringx     = require("pl.stringx")
+local tablex      = require("pl.tablex")
 local sformat = string.format
 
 local routes = {}
@@ -70,6 +73,23 @@ local function read_resource(resource)
   return from_json(resource)
 end
 
+-- determines the appropriate request response content type, based in _format or headers
+local function get_return_content_type(self, content_type)
+  if self.req.parsed_url.query and self.req.parsed_url.query:find("_format", 1, true) then
+    local query = unescape(self.req.parsed_url.query)
+    local parameters = stringx.split(query, "&")
+    for i = 1, #parameters do
+      local param = parameters[i]
+      if string.find(param, "_format") then
+        local desired_format = string.match(param, "_format=(.*)")
+        return types[desired_format]
+      end
+    end
+  end
+
+  return get_resource_type(content_type)
+end
+
 local function save_resource(resource, fhir_type)
   -- don't pass resource, since it's the one we're getting back from fhirbase
   if fhir_type == "xml" then
@@ -80,7 +100,14 @@ local function save_resource(resource, fhir_type)
 end
 
 local function make_return_content_type(fhir_type)
-  return from_types[fhir_type] or from_types.json
+  local content_type = from_types[fhir_type] or from_types.json
+
+  -- also add the charset back in if it was used
+  if ngx.req.get_headers()["accept"] and ngx.req.get_headers()["accept"]:find("charset=UTF-8", 1, true) then
+    content_type = sformat("%s;%s", content_type, "charset=UTF-8")
+  end
+
+  return content_type
 end
 
 -- returns the servers base url, based on a URL that was sent to it
@@ -92,8 +119,8 @@ end
 
 -- given a resource and desired http status code, creates a response in the right output format (xml or json) with the correct http headers
 -- desired http status code will be overwritten if there is an error
-local function make_response(resource, http_status_code, headers)
-  local desired_fhir_type = get_resource_type(ngx.req.get_headers()["accept"])
+local function make_response(self, resource, http_status_code, headers)
+  local desired_fhir_type = get_return_content_type(self, ngx.req.get_headers()["accept"])
 
   if resource and resource.resourceType == "OperationOutcome" and resource.issue[1].extension then
     http_status_code = resource.issue[1].extension[1].code or resource.issue[1].extension[1].valueString
@@ -102,12 +129,12 @@ local function make_response(resource, http_status_code, headers)
   return {save_resource(resource, desired_fhir_type), layout = false, content_type = make_return_content_type(desired_fhir_type), status = (http_status_code and http_status_code or 200), headers = headers}
 end
 
-routes.metadata = function ()
+routes.metadata = function (self)
   local operation = {name = "conformance", definition = "http://hl7.org/fhir/http.html#conformance", fhirbase_function = "fhir_conformance"}
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json({default = "values"}))
 
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function))
+  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function))
 end
 
 routes.create_resource = function(self)
@@ -133,7 +160,7 @@ routes.create_resource = function(self)
     location = sformat("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
   end
 
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 201, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
+  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), 201, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
 end
 
 routes.read_resource = function(self)
@@ -141,7 +168,7 @@ routes.read_resource = function(self)
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
 
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function))
+  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function))
 end
 
 routes.vread_resource = function(self)
@@ -149,7 +176,7 @@ routes.vread_resource = function(self)
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id, versionId = self.params.versionId}))
 
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function))
+  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function))
 end
 
 routes.update_resource = function(self)
@@ -177,7 +204,7 @@ routes.update_resource = function(self)
     location = sformat("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
   end
 
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 200, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
+  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), 200, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
 end
 
 routes.delete_resource = function(self)
@@ -185,7 +212,7 @@ routes.delete_resource = function(self)
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
 
-  return make_response(unpickle_fhirbase_result(res, operation.fhirbase_function), 204)
+  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), 204)
 end
 
 local function populate_bundle_fullUrls(self, bundle)
@@ -215,7 +242,7 @@ routes.get_resource_history = function(self)
   -- fill in the fullUrl fields in the Bundle response
   bundle = populate_bundle_fullUrls(self, bundle)
 
-  return make_response(bundle)
+  return make_response(self, bundle)
 end
 
 routes.search = function(self)
@@ -228,7 +255,7 @@ routes.search = function(self)
   -- fill in the fullUrl fields in the Bundle response
   bundle = populate_bundle_fullUrls(self, bundle)
 
-  return make_response(bundle)
+  return make_response(self, bundle)
 end
 
 return routes
