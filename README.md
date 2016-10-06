@@ -38,10 +38,10 @@ DryFHIR implements the HL7 FHIR specification, [version 1.4.0](http://hl7.org/fh
 
 DryFHIR is made by Vadim Peretokin, and is licensed under the [Apache License, Version 2.0](LICENSE).
 
-## Contributing
+# Contributing
 
 Want to help hack on this? Join the [Gitter](https://gitter.im/dryfhir/Lobby) channel!
 
-### Security disclosures
+# Security disclosures
 
 DryFHIR accepts responsible security disclosures through an email to [dryfhir@gmail.com](mailto:dryfhir@gmail.com).
