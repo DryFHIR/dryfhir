@@ -15,7 +15,12 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
     port = "5432",
     database = "fhirbase",
   },
-  print_stack_to_browser = false
+  print_stack_to_browser = false, 
+ 
+  -- fhir-related variables 
+  fhir_conformance_status = "draft",    -- http://hl7-fhir.github.io/conformance-definitions.html#Conformance.status 
+  fhir_conformance_experimental = true, -- http://hl7-fhir.github.io/conformance-definitions.html#Conformance.experimental 
+
 })
 
 config({"development", "heroku", "test", "prod"}, {
