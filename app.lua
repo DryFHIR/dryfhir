@@ -53,7 +53,10 @@ app:match("/console", console.make())
 -- check that this is a valid resource type
 app:before_filter(function(self)
   if self.params.type then
-    if not ngx.shared.known_resources:get(self.params.type) then self:write("no") end
+    if not ngx.shared.known_resources:get(self.params.type) then
+      self.resource_list = ngx.shared.known_resources:get_keys()
+      self:write({layout = "404", status = 404})
+    end
   end
 end)
 

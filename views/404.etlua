@@ -1,0 +1,12 @@
+<!-- views/layout.etlua -->
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Such resource does not exist.</title>
+</head>
+<body>
+  <h1>Such resource does not exist.</h1>
+  <p>Resources available on this server are: <%= table.concat(resource_list, ", ") %></p>
+</body>
+</html>

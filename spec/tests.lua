@@ -293,4 +293,11 @@ describe("DryFHIR", function()
         assert.same(resource.issue[1].code, "not-supported")
         assert.same(resource.issue[1].severity, "error")
       end)
+
+    it("should respond with a #404 to an invalid resource type", function()
+        -- DELETE [base]/[type]/[id]
+        local status, body = request("/Patent/"..existing_resource_id)
+
+        assert.same(404, status)
+      end)
   end)
