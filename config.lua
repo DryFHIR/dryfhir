@@ -15,11 +15,11 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
     port = "5432",
     database = "fhirbase",
   },
-  print_stack_to_browser = false, 
- 
-  -- fhir-related variables 
-  fhir_conformance_status = "draft",    -- http://hl7-fhir.github.io/conformance-definitions.html#Conformance.status 
-  fhir_conformance_experimental = true, -- http://hl7-fhir.github.io/conformance-definitions.html#Conformance.experimental 
+  print_stack_to_browser = false,
+
+  -- fhir-related variables
+  fhir_conformance_status = "draft",    -- http://hl7-fhir.github.io/conformance-definitions.html#Conformance.status
+  fhir_conformance_experimental = true, -- http://hl7-fhir.github.io/conformance-definitions.html#Conformance.experimental
 
 })
 
@@ -106,6 +106,14 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
           -- invalid content, as in, it is missing entirely
         }
       }
-    }, status = 400}
+    }, status = 400},
+    conditional_create_resource_already_exists = {
+    {
+      resourceType = "OperationOutcome",
+      text = {
+        status = "generated",
+        div = "a resource matching the If-None-Exist query already exists"
+      }
+    }, status = 200}
   }
 })
