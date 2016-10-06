@@ -28,7 +28,7 @@ See [INSTALL](INSTALL.md) on how to get DryFHIR running.
 
 # Testing
 
-Testing is done with a two-pronged approach: built-in unit tests and [Aegis Touchstone](https://touchstone.aegis.net/touchstone/) testing. To run the built-in tests, run `busted` in the root level of the project. This requires [busted](http://olivinelabs.com/busted/) to be installed. The latest Touchstone results are 648/1064 tests passing from the BasicSTU3--All test setup.
+Testing is done with a two-pronged approach: built-in unit tests and [Aegis Touchstone](https://touchstone.aegis.net/touchstone/) testing. To run the built-in tests, run `busted` in the root level of the project. This requires [busted](http://olivinelabs.com/busted/) to be installed. The latest Touchstone results are 992/1064 tests passing from the BasicSTU3--All test setup.
 
 # Further Reading
 
