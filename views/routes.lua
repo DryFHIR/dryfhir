@@ -122,7 +122,7 @@ end
 local function make_response(self, resource, http_status_code, headers)
   local desired_fhir_type = get_return_content_type(self, ngx.req.get_headers()["accept"])
 
-  if resource and resource.resourceType == "OperationOutcome" and resource.issue[1].extension then
+  if resource and resource.resourceType == "OperationOutcome" and resource.issue and resource.issue[1].extension then
     http_status_code = resource.issue[1].extension[1].code or resource.issue[1].extension[1].valueString
   end
 

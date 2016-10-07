@@ -21,6 +21,7 @@ local request         = require("lapis.spec.server").request
 local tablex          = require("pl.tablex")
 local to_json         = require("lapis.util").to_json
 local use_test_server = require("lapis.spec").use_test_server
+local db              = require("lapis.db")
 local sformat         = string.format
 
 describe("DryFHIR", function()
@@ -300,4 +301,50 @@ describe("DryFHIR", function()
 
         assert.same(404, status)
       end)
+
+
+    describe("#conditionalcreate suite of tests", function()
+        local test_resource
+        setup(function()
+            local res = db.query("truncate patient")
+            res = db.query("truncate patient_history")
+
+            test_resource = {
+                text = {
+                    status = "generated",
+                    div = "<div xmlns=\"http://www.w3.org/1999/xhtml\"> <h1>Given Lastname</h1> </div>"
+                },
+                resourceType = "Patient",
+                name = {
+                {
+                  family = {
+                    "Lastname"
+                  },
+                  text = "Given Lastname",
+                  given = {
+                    "Given"
+                  }
+                }
+                },
+                active = true
+            }
+        end)
+
+        it("should create and return 201 when no resource previously existed", function()
+            local status = request("/Patient", {post = to_json(test_resource), method = "POST", headers = {["If-None-Exist"] = "family=Lastname&given=Given"}})
+            assert.same(201, status)
+        end)
+
+        it("shouldn't change anything and return 200 if one matching resource already exists", function()
+            local status = request("/Patient", {post = to_json(test_resource), method = "POST", headers = {["If-None-Exist"] = "family=Lastname&given=Given"}})
+            assert.same(200, status)
+        end)
+
+        it("shouldn't change anything and return a 412 error if multiple copies of the resource already exist", function()
+            local status, body = request("/Patient", {post = to_json(test_resource), method = "POST"})
+            assert.same(201, status)
+            status, body = request("/Patient", {post = to_json(test_resource), method = "POST", headers = {["If-None-Exist"] = "family=Lastname&given=Given"}})
+            assert.same(412, status)
+        end)
+    end)
   end)
