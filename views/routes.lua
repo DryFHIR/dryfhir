@@ -144,6 +144,11 @@ routes.metadata = function (self)
 
   conformance.software.name = "DryFHIR"
 
+  -- mention we support conditional create
+  for _, resource in pairs(conformance.rest[1].resource) do
+    resource.conditionalCreate = true
+  end
+
   return make_response(self, conformance)
 end
 
