@@ -150,12 +150,21 @@ end
 routes.create_resource = function(self)
   local operation = {name = "create", definition = "http://hl7.org/fhir/http.html#create", fhirbase_function = "fhir_create_resource"}
 
-  -- TODO make http://hl7.org/fhir/http.html#ccreate work
-
-
   ngx.req.read_body()
   local data = read_resource(ngx.req.get_body_data())
   local wrapped_data = {resource = data}
+
+  wrapped_data.ifNoneExist = ngx.req.get_headers()["if-none-exist"]
+
+  -- check if we need to return a 200 header for a conditional create, when 1 resource instance already existed and nothing happened
+  local http_status_code = 201
+  if wrapped_data.ifNoneExist then
+    local check_creation = db.select("fhir_search(?);", to_json({resourceType = self.params.type, queryString = wrapped_data.ifNoneExist}))
+    local result_bundle = unpickle_fhirbase_result(check_creation, "fhir_search")
+    if result_bundle.total == 1 then
+      http_status_code = 200
+    end
+  end
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json(wrapped_data))
 
@@ -170,7 +179,8 @@ routes.create_resource = function(self)
     location = sformat("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
   end
 
-  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), 201, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
+  -- return make_response(self, config.canned_responses.conditional_create_resource_already_exists[1], http_status_code, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
+  return make_response(self, http_status_code == 200 and config.canned_responses.conditional_create_resource_already_exists[1] or unpickle_fhirbase_result(res, operation.fhirbase_function), http_status_code, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
 end
 
 routes.read_resource = function(self)
