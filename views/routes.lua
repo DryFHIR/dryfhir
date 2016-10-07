@@ -134,17 +134,17 @@ routes.metadata = function (self)
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json({default = "values"}))
 
-  local conformance = unpickle_fhirbase_result(res, operation.fhirbase_function) 
- 
-  -- add conformance statements to what dryfhir supports on top of fhirbase 
-  conformance.format = {"xml", "json"} 
-  conformance.status = config.fhir_conformance_status 
-  conformance.experimental = config.fhir_conformance_experimental 
-  conformance.kind = "instance" 
- 
-  conformance.software.name = "DryFHIR" 
- 
-  return make_response(conformance) 
+  local conformance = unpickle_fhirbase_result(res, operation.fhirbase_function)
+
+  -- add conformance statements to what dryfhir supports on top of fhirbase
+  conformance.format = {"xml", "json"}
+  conformance.status = config.fhir_conformance_status
+  conformance.experimental = config.fhir_conformance_experimental
+  conformance.kind = "instance"
+
+  conformance.software.name = "DryFHIR"
+
+  return make_response(self, conformance)
 end
 
 routes.create_resource = function(self)
