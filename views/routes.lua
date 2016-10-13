@@ -216,7 +216,13 @@ routes.update_resource = function(self)
   local data = read_resource(body_data)
   local wrapped_data = {resource = data}
 
-  local res = db.select(operation.fhirbase_function .. "(?);", to_json(wrapped_data))
+  -- check if a resource didn't exist before, and thus we need to return 201
+  local res = db.select("fhir_read_resource(?);", to_json({resourceType = self.params.type, id = data.id}))
+  local returned_resource = unpickle_fhirbase_result(res, "fhir_read_resource")
+  local created_or_updated_response_code = returned_resource.resourceType == self.params.type and 200 or 201
+
+  -- perform the requested update on the resource
+  res = db.select(operation.fhirbase_function .. "(?);", to_json(wrapped_data))
 
   -- construct the appropriate Last-Modified, ETag, and Location headers
   local last_modified, etag, location
@@ -229,7 +235,7 @@ routes.update_resource = function(self)
     location = sformat("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
   end
 
-  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), 200, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
+  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), created_or_updated_response_code, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
 end
 
 routes.delete_resource = function(self)

@@ -188,6 +188,24 @@ describe("DryFHIR", function()
         assert.same(sformat('W/"%s"', new_resource_version), headers["ETag"])
       end)
 
+    it("should return 201 on an #update to a non-existing resource", function()
+        -- PUT [base]/[type]/[id]
+
+        local sent_resource = tablex.deepcopy(existing_resource)
+        local new_resource_id = "patient-update-create-01"
+        sent_resource.id = new_resource_id
+        local status, body, headers = request("/Patient/"..new_resource_id, {post = to_json(sent_resource), method = "PUT", headers = {["Content-Type"] = "application/fhir+json"}})
+
+        assert.same(201, status)
+        assert.truthy(headers["Last-Modified"])
+
+        local new_resource_version = from_json(body).meta.versionId
+        assert.truthy(string.find(headers.Location, sformat("Patient/%s/_history/%s", new_resource_id, new_resource_version), 1, true))
+
+        assert.truthy(headers["ETag"])
+        assert.same(sformat('W/"%s"', new_resource_version), headers["ETag"])
+      end)
+
     it("should should fail an #update operation without content", function()
         -- PUT [base]/[type]/[id]
         local status, body = request("/Patient/1", {method = "PUT"})
