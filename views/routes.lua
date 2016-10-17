@@ -150,9 +150,10 @@ routes.metadata = function (self)
 
   conformance.software.name = "DryFHIR"
 
-  -- mention we support conditional create
+  -- mention we support conditional create and update
   for _, resource in pairs(conformance.rest[1].resource) do
     resource.conditionalCreate = true
+    resource.conditionalUpdate = true
   end
 
   return make_response(self, conformance)
@@ -293,6 +294,51 @@ routes.search = function(self)
   bundle = populate_bundle_fullUrls(self, bundle)
 
   return make_response(self, bundle)
+end
+
+routes.conditional_update_resource = function(self)
+  local operation = {name = "conditional update", definition = "https://hl7-fhir.github.io/http.html#2.42.0.10.2", fhirbase_function = "fhir_update_resource"}
+
+  ngx.req.read_body()
+  local body_data = ngx.req.get_body_data()
+  if not body_data then
+    return { json = config.canned_responses.handle_missing_body[1], status = config.canned_responses.handle_missing_body.status}
+  end
+
+  local data = read_resource(body_data)
+  local wrapped_data = {resource = data}
+  local http_status_code
+
+  -- fhirbase conditional update is broken, so we do it ourselves (https://github.com/fhirbase/fhirbase-plv8/issues/81)
+  local res = db.select("fhir_search(?);", to_json({resourceType = self.params.type, queryString = self.req.parsed_url.query}))
+  local bundle = unpickle_fhirbase_result(res, "fhir_search")
+
+  if bundle.total == 0 then
+    operation.fhirbase_function = "fhir_create_resource"
+    res = db.select(operation.fhirbase_function .. "(?);", to_json(wrapped_data))
+    http_status_code = 201
+  elseif bundle.total == 1 then
+    local existing_resource_id = bundle.entry[1].resource.id
+    wrapped_data.resource.id = existing_resource_id
+    operation.fhirbase_function = "fhir_update_resource"
+    res = db.select(operation.fhirbase_function .. "(?);", to_json(wrapped_data))
+    http_status_code = 200
+  else
+    return { json = config.canned_responses.conditinal_update_many_resources_exist[1], status = config.canned_responses.conditinal_update_many_resources_exist.status}
+  end
+
+  -- construct the appropriate Last-Modified, ETag, and Location headers
+  local last_modified, etag, location
+  local base_url = get_base_url(self)
+  local resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
+  -- only do this for a resource that was created - ignore OperationOutcome resources
+  if http_status_code ~= 412 and resource.meta then
+    last_modified = date(resource.meta.lastUpdated):fmt("${http}")
+    etag = sformat('W/"%s"', resource.meta.versionId)
+    location = sformat("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
+  end
+
+  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), http_status_code, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
 end
 
 return routes

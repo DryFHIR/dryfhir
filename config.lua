@@ -114,6 +114,19 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
         status = "generated",
         div = "a resource matching the If-None-Exist query already exists"
       }
-    }, status = 200}
+    }, status = 200},
+    conditinal_update_many_resources_exist = {
+    {
+      resourceType = "OperationOutcome",
+      text = {
+        status = "generated",
+        div = "<div xmlns=\"http://www.w3.org/1999/xhtml\">Failed to conditionally update the resource because this search matched 2 or more resources</div>"
+      },
+      issue = {{
+        severity = "error",
+        code = "processing",
+        diagnostics = "Failed to conditionally update the resource because this search matched 2 or more resources"
+      }}
+    }, status = 412}
   }
 })
