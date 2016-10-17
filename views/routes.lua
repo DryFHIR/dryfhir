@@ -90,6 +90,7 @@ local function get_return_content_type(self, content_type)
   return get_resource_type(content_type)
 end
 
+-- given a json resource from fhirbase, converts it to xml if desired by the requster
 local function save_resource(resource, fhir_type)
   -- don't pass resource, since it's the one we're getting back from fhirbase
   if fhir_type == "xml" then
@@ -102,8 +103,10 @@ end
 local function make_return_content_type(fhir_type)
   local content_type = from_types[fhir_type] or from_types.json
 
-  -- also add the charset back in if it was used
-  if ngx.req.get_headers()["accept"] and ngx.req.get_headers()["accept"]:find("charset=UTF-8", 1, true) then
+  -- also add the charset back in if it was used in either Accept or Accept-Charset headers
+  local headers = ngx.req.get_headers()
+  if (headers["accept"] and headers["accept"]:lower():find("charset=utf-8", 1, true))
+    or (headers["accept-charset"] and headers["accept-charset"]:lower():find("utf-8", 1, true)) then
     content_type = sformat("%s;%s", content_type, "charset=UTF-8")
   end
 
@@ -120,10 +123,13 @@ end
 -- given a resource and desired http status code, creates a response in the right output format (xml or json) with the correct http headers
 -- desired http status code will be overwritten if there is an error
 local function make_response(self, resource, http_status_code, headers)
-  local desired_fhir_type = get_return_content_type(self, ngx.req.get_headers()["accept"])
+  local request_headers = ngx.req.get_headers()
+  local desired_fhir_type = get_return_content_type(self, request_headers["accept"])
 
   if resource and resource.resourceType == "OperationOutcome" and resource.issue and resource.issue[1].extension then
     http_status_code = resource.issue[1].extension[1].code or resource.issue[1].extension[1].valueString
+  elseif resource and resource.resourceType == "OperationOutcome" and resource.issue and tonumber(resource.issue[1].code) then -- sometimes it doesn't return anything in the extension
+    http_status_code = resource.issue[1].code
   end
 
   return {save_resource(resource, desired_fhir_type), layout = false, content_type = make_return_content_type(desired_fhir_type), status = (http_status_code and http_status_code or 200), headers = headers}
