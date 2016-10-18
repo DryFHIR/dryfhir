@@ -413,4 +413,24 @@ describe("DryFHIR", function()
             assert.same(412, status)
         end)
     end)
+
+    it("should have support for the #prefer header", function()
+        local sent_resource = tablex.deepcopy(existing_resource)
+        local status, body, headers = request("/Patient/"..existing_resource_id, {post = to_json(sent_resource), method = "PUT", headers = {["Prefer"] = "return=minimal", ["Accept"] = "application/fhir+json"}})
+
+        assert.same(201, status)
+        assert.same("", body)
+        -- doesn't work yet
+        -- assert.same(nil, headers["Content-Type"])
+
+        status, body, headers = request("/Patient/"..existing_resource_id, {post = to_json(sent_resource), method = "PUT", headers = {["Prefer"] = "return=representation", ["Accept"] = "application/fhir+json"}})
+
+        assert.same(200, status)
+        assert.truthy(string.find(body, "Eve Everywoman", 1, true))
+
+        status, body, headers = request("/Patient/"..existing_resource_id, {post = to_json(sent_resource), method = "PUT", headers = {["Prefer"] = "return=OperationOutcome", ["Accept"] = "application/fhir+json"}})
+
+        assert.same(200, status)
+        assert.truthy(string.find(body, "OperationOutcome", 1, true))
+      end)
   end)

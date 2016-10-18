@@ -127,6 +127,19 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
         code = "processing",
         diagnostics = "Failed to conditionally update the resource because this search matched 2 or more resources"
       }}
-    }, status = 412}
+    }, status = 412},
+    prefer_successful_operationoutcome = {
+    {
+      resourceType = "OperationOutcome",
+      text = {
+        status = "generated",
+        div = "<div xmlns=\"http://www.w3.org/1999/xhtml\">The operation has been successfully executed</div>"
+      },
+      issue = {{
+        severity = "information",
+        code = "informational",
+        diagnostics = "The operation has been successfully executed"
+      }}
+    }, status = 200}
   }
 })

@@ -122,6 +122,7 @@ end
 
 -- given a resource and desired http status code, creates a response in the right output format (xml or json) with the correct http headers
 -- desired http status code will be overwritten if there is an error
+-- resource output will be determined by the presence or lack of a Prefer header
 local function make_response(self, resource, http_status_code, headers)
   local request_headers = ngx.req.get_headers()
   local desired_fhir_type = get_return_content_type(self, request_headers["accept"])
@@ -132,7 +133,19 @@ local function make_response(self, resource, http_status_code, headers)
     http_status_code = resource.issue[1].code
   end
 
-  return {save_resource(resource, desired_fhir_type), layout = false, content_type = make_return_content_type(desired_fhir_type), status = (http_status_code and http_status_code or 200), headers = headers}
+  local body_output, content_type
+  if request_headers["Prefer"] and request_headers["Prefer"] == "return=minimal" then
+    body_output = ""
+    -- leave content_type nil, so none is sent... doesn't actually work tho https://github.com/leafo/lapis/issues/485
+  elseif request_headers["Prefer"] and request_headers["Prefer"] == "return=OperationOutcome" then
+    body_output = to_json(config.canned_responses.prefer_successful_operationoutcome[1])
+    content_type = make_return_content_type(desired_fhir_type)
+  else
+    body_output = save_resource(resource, desired_fhir_type)
+    content_type = make_return_content_type(desired_fhir_type)
+  end
+
+  return {body_output, layout = false, content_type = content_type, status = (http_status_code and http_status_code or 200), headers = headers}
 end
 
 routes.metadata = function (self)
