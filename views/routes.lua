@@ -241,6 +241,11 @@ routes.update_resource = function(self)
   local returned_resource = unpickle_fhirbase_result(res, "fhir_read_resource")
   local created_or_updated_response_code = returned_resource.resourceType == self.params.type and 200 or 201
 
+  -- add a contention guard if there is one
+  if ngx.req.get_headers()["if-match"] then
+    wrapped_data.ifMatch = string.match(ngx.req.get_headers()["if-match"], '^W/"(.+)"$')
+  end
+
   -- perform the requested update on the resource
   res = db.select(operation.fhirbase_function .. "(?);", to_json(wrapped_data))
 
