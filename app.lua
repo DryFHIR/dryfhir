@@ -77,11 +77,7 @@ app:match("type/id", "/:type/:id(/)", respond_to({
 
 app:match("type", "/:type(/)", respond_to({
   PUT = routes.conditional_update_resource,
-  DELETE = function(self)
-    local operation = {name = "conditional delete", definition = "http://hl7.org/fhir/http.html#2.1.0.12.1"}
-
-    return { json = {operation.name, self.params} }
-  end,
+  DELETE = routes.conditional_delete_resource,
   POST = routes.create_resource,
   GET  = routes.search
 }))

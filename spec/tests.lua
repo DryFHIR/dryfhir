@@ -433,4 +433,65 @@ describe("DryFHIR", function()
         assert.same(200, status)
         assert.truthy(string.find(body, "OperationOutcome", 1, true))
       end)
+
+    describe("#conditionaldelete suite of tests", function()
+        local test_resource
+        setup(function()
+            test_resource = {
+                text = {
+                    status = "generated",
+                    div = "<div xmlns=\"http://www.w3.org/1999/xhtml\"> <h1>Name Family</h1> </div>"
+                },
+                resourceType = "Patient",
+                name = {
+                {
+                  family = {
+                    "Family"
+                  },
+                  text = "Name Family",
+                  given = {
+                    "Name"
+                  }
+                }},
+                active = true
+            }
+        end)
+
+        it("should delete multiple resources previously created", function()
+            local status, body
+            status = request("/Patient", {post = to_json(test_resource), method = "POST"})
+            assert.same(201, status)
+            status = request("/Patient", {post = to_json(test_resource), method = "POST"})
+            assert.same(201, status)
+            status = request("/Patient", {post = to_json(test_resource), method = "POST"})
+            assert.same(201, status)
+            status = request("/Patient", {post = to_json(test_resource), method = "POST"})
+            assert.same(201, status)
+
+            status = request("/Patient/?name=name", {method = "DELETE"})
+            assert.same(204, status)
+
+            status, body = request("/Patient/?name=name", {method = "GET", headers = {["Content-Type"] = "application/fhir+json"}})
+            assert.same(200, status)
+            assert.same(0, from_json(body).total)
+        end)
+
+        it("should delete one resources previously created", function()
+            local status, body
+            status = request("/Patient", {post = to_json(test_resource), method = "POST"})
+            assert.same(201, status)
+
+            status = request("/Patient/?name=name", {method = "DELETE"})
+            assert.same(204, status)
+
+            status, body = request("/Patient/?name=name", {method = "GET", headers = {["Content-Type"] = "application/fhir+json"}})
+            assert.same(200, status)
+            assert.same(0, from_json(body).total)
+        end)
+
+        it("should be fine with no resources left to delete", function()
+            local status = request("/Patient/?name=name", {method = "DELETE"})
+            assert.same(404, status)
+        end)
+    end)
   end)

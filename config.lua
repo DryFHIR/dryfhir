@@ -140,6 +140,19 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
         code = "informational",
         diagnostics = "The operation has been successfully executed"
       }}
-    }, status = 200}
+    }, status = 200},
+    conditional_delete_resource_missng = {
+    {
+      resourceType = "OperationOutcome",
+      text = {
+        status = "generated",
+        div = "<div xmlns=\"http://www.w3.org/1999/xhtml\">No resources exist that match this search parameter</div>"
+      },
+      issue = {{
+        severity = "information",
+        code = "informational",
+        diagnostics = "No resources exist that match this search parameter"
+      }}
+    }, status = 404},
   }
 })

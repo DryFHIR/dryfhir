@@ -167,6 +167,7 @@ routes.metadata = function (self)
   for _, resource in pairs(conformance.rest[1].resource) do
     resource.conditionalCreate = true
     resource.conditionalUpdate = true
+    resource.conditionalDelete = "multiple" -- didn't seem to be recognised by touchstone. add an option for rejecting multiples too!
   end
 
   return make_response(self, conformance)
@@ -357,6 +358,36 @@ routes.conditional_update_resource = function(self)
   end
 
   return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), http_status_code, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
+end
+
+routes.conditional_delete_resource = function(self)
+  local operation = {name = "conditional delete", definition = "https://hl7-fhir.github.io/http.html#2.42.0.12.1", fhirbase_function = "fhir_update_resource"}
+
+  local http_status_code
+
+  -- fhirbase lacks conditional delete, so we do it ourselves
+  local res = db.select("fhir_search(?);", to_json({resourceType = self.params.type, queryString = self.req.parsed_url.query}))
+  local bundle = unpickle_fhirbase_result(res, "fhir_search")
+
+  if bundle.total == 0 then
+    return { json = config.canned_responses.conditional_delete_resource_missng[1], status = config.canned_responses.conditional_delete_resource_missng.status}
+  elseif bundle.total == 1 then
+    operation.fhirbase_function = "fhir_delete_resource"
+    res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = bundle.entry[1].resource.id}))
+    http_status_code = 204
+  else
+    operation.fhirbase_function = "fhir_delete_resource"
+
+    for i = 1, #bundle.entry do
+      local matched_resource = bundle.entry[i].resource
+
+      res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = matched_resource.id}))
+    end
+
+    http_status_code = 204
+  end
+
+  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), http_status_code)
 end
 
 return routes
