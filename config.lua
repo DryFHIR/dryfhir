@@ -20,6 +20,8 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
   -- fhir-related variables
   fhir_conformance_status = "draft",    -- http://hl7-fhir.github.io/conformance-definitions.html#Conformance.status
   fhir_conformance_experimental = true, -- http://hl7-fhir.github.io/conformance-definitions.html#Conformance.experimental
+  fhir_multiple_conditional_delete = true, -- when enabled, deletes all resources that match a conditional delete. when disabled,
+                                           -- errors if multiple resources match a conditional delete
 
 })
 
@@ -152,6 +154,19 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
         severity = "information",
         code = "informational",
         diagnostics = "No resources exist that match this search parameter"
+      }}
+    }, status = 404},
+    conditional_delete_multiple_disallowed = {
+    {
+      resourceType = "OperationOutcome",
+      text = {
+        status = "generated",
+        div = "<div xmlns=\"http://www.w3.org/1999/xhtml\">Multiple resources matched this deletion request - only one match is allowed</div>"
+      },
+      issue = {{
+        severity = "error",
+        code = "processing",
+        diagnostics = "Multiple resources matched this deletion request - only one match is allowed"
       }}
     }, status = 404},
   }
