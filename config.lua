@@ -143,7 +143,7 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
         diagnostics = "The operation has been successfully executed"
       }}
     }, status = 200},
-    conditional_delete_resource_missng = {
+    conditional_delete_resource_missing = {
     {
       resourceType = "OperationOutcome",
       text = {
