@@ -305,7 +305,7 @@ describe("DryFHIR", function()
     it("should return a 400 OperationOutcome on an invalid URL", function()
         local status, body = request("/dfdfdf/adfdfdf/dfddf")
 
-        assert.same(400, status)
+        assert.same(404, status)
 
         local resource = from_json(body)
         assert.truthy(resource.resourceType)
@@ -315,9 +315,12 @@ describe("DryFHIR", function()
 
     it("should respond with a #404 to an invalid resource type", function()
         -- DELETE [base]/[type]/[id]
-        local status, body = request("/Patent/"..existing_resource_id)
+        local status, body, headers = request("/Patent/"..existing_resource_id)
 
         assert.same(404, status)
+        -- it should at least mention Patient in the list of known resources
+        assert.truthy(string.find(body, 'Patient', 1, true))
+        assert.truthy(headers["Content-Type"], "application/fhir+json")
       end)
 
 

@@ -84,16 +84,16 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
       resourceType = "OperationOutcome",
       text = {
         status = "generated",
-        div = "this operation is not supported"
+        div = "<div xmlns=\"http://www.w3.org/1999/xhtml\">This operation or resource is unsupported. Known resources are: %s</div>"
       },
       issue = {
         [1] = {
           severity = "error",
-          code = "not-supported"
-          -- add what server knows how to handle here
+          code = "not-supported",
+          diagnostics = "This operation or resource is unsupported. Known resources are: %s"
         }
       }
-    }, status = 400},
+    }, status = 404},
     handle_missing_body = {
     {
       resourceType = "OperationOutcome",

@@ -120,9 +120,19 @@ local function get_base_url(self)
   return base_url
 end
 
+-- insert the string arguments given a given a canned response
+local function populate_canned_response(resource, ...)
+  local canned_resource_copy = tablex.deepcopy(resource)
+  canned_resource_copy.text.div = string.format(canned_resource_copy.text.div, ...)
+  canned_resource_copy.issue[1].diagnostics = string.format(canned_resource_copy.issue[1].diagnostics, ...)
+
+  return canned_resource_copy
+end
+
 -- given a resource and desired http status code, creates a response in the right output format (xml or json) with the correct http headers
 -- desired http status code will be overwritten if there is an error
 -- resource output will be determined by the presence or lack of a Prefer header
+-- 'headers' are custom headers to add to the response
 local function make_response(self, resource, http_status_code, headers)
   local request_headers = ngx.req.get_headers()
   local desired_fhir_type = get_return_content_type(self, request_headers["accept"])
@@ -146,6 +156,22 @@ local function make_response(self, resource, http_status_code, headers)
   end
 
   return {body_output, layout = false, content_type = content_type, status = (http_status_code and http_status_code or 200), headers = headers}
+end
+
+routes.before_filter = function(self)
+  if self.params.type then
+    if not ngx.shared.known_resources:get(self.params.type) then
+      self.resource_list = ngx.shared.known_resources:get_keys()
+
+      self:write(make_response(self, populate_canned_response(config.canned_responses.handle_404[1], table.concat(self.resource_list, ', ')), config.canned_responses.handle_404.status))
+    end
+  end
+end
+
+routes.handle_404 = function(self)
+  self.resource_list = ngx.shared.known_resources:get_keys()
+
+  return(make_response(self, populate_canned_response(config.canned_responses.handle_404[1], table.concat(self.resource_list, ', ')), config.canned_responses.handle_404.status))
 end
 
 routes.metadata = function (self)
