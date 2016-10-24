@@ -46,7 +46,7 @@ For the ease of starting the docker machines in a usual state, there are two doc
 
 
 # Natively
-To get DryFHIR setup and running natively on your Linux machine. These instructions are guaranteed to work with Ubuntu 16.04 LTS.
+Use the following instructions to get DryFHIR setup and running natively on your Linux machine (these instructions have been tested on 16.04 LTS).
 
 ```bash
 # install postgresql and the plv8 extension
