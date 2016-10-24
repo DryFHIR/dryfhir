@@ -262,7 +262,7 @@ routes.update_resource = function(self)
   ngx.req.read_body()
   local body_data = ngx.req.get_body_data()
   if not body_data then
-    return { json = config.canned_responses.handle_missing_body[1], status = config.canned_responses.handle_missing_body.status}
+    return make_response(self, config.canned_responses.handle_missing_body[1], config.canned_responses.handle_missing_body.status)
   end
 
   local data = read_resource(body_data)
@@ -352,7 +352,7 @@ routes.conditional_update_resource = function(self)
   ngx.req.read_body()
   local body_data = ngx.req.get_body_data()
   if not body_data then
-    return { json = config.canned_responses.handle_missing_body[1], status = config.canned_responses.handle_missing_body.status}
+    return make_response(self, config.canned_responses.handle_missing_body[1], config.canned_responses.handle_missing_body.status)
   end
 
   local data = read_resource(body_data)
@@ -374,7 +374,7 @@ routes.conditional_update_resource = function(self)
     res = db.select(operation.fhirbase_function .. "(?);", to_json(wrapped_data))
     http_status_code = 200
   else
-    return { json = config.canned_responses.conditinal_update_many_resources_exist[1], status = config.canned_responses.conditinal_update_many_resources_exist.status}
+    return make_response(self, config.canned_responses.conditinal_update_many_resources_exist[1], config.canned_responses.conditinal_update_many_resources_exist.status)
   end
 
   -- construct the appropriate Last-Modified, ETag, and Location headers
@@ -401,7 +401,7 @@ routes.conditional_delete_resource = function(self)
   local bundle = unpickle_fhirbase_result(res, "fhir_search")
 
   if bundle.total == 0 then
-    return { json = config.canned_responses.conditional_delete_resource_missing[1], status = config.canned_responses.conditional_delete_resource_missing.status}
+    return make_response(self, config.canned_responses.conditional_delete_resource_missing[1], config.canned_responses.conditional_delete_resource_missing.status)
   elseif bundle.total == 1 then
     operation.fhirbase_function = "fhir_delete_resource"
     res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = bundle.entry[1].resource.id}))
