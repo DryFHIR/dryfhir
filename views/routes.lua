@@ -397,7 +397,7 @@ routes.conditional_delete_resource = function(self)
   local http_status_code, resource
 
   -- fhirbase lacks conditional delete, so we do it ourselves
-  local res = db.select("fhir_search(?);", to_json({resourceType = self.params.type, queryString = self.req.parsed_url.query}))
+  local res = db.select("fhir_search(?);", to_json({resourceType = self.params.type, queryString = sformat("%s&_count=%s", self.req.parsed_url.query, config.conditinal_delete_max_resouces)}))
   local bundle = unpickle_fhirbase_result(res, "fhir_search")
 
   if bundle.total == 0 then

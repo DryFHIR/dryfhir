@@ -16,6 +16,7 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
     database = "fhirbase",
   },
   print_stack_to_browser = false,
+  conditinal_delete_max_resouces = 1000000, -- max # of resources to delete in one go for multiple matches in a conditinal resource
 
   -- fhir-related variables
   fhir_conformance_status = "draft",    -- http://hl7-fhir.github.io/conformance-definitions.html#Conformance.status
