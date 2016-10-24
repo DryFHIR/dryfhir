@@ -77,7 +77,6 @@ config({"prod", "dockerprod"}, {
 })
 
 -- template responses
-
 config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
   canned_responses = {
     handle_404 = {
@@ -100,7 +99,7 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
       resourceType = "OperationOutcome",
       text = {
         status = "generated",
-        div = "resource body is missing in a POST or a PUT operation"
+        div = "<div xmlns=\"http://www.w3.org/1999/xhtml\">resource body is missing in a POST or a PUT operation</div>"
       },
       issue = {
         [1] = {
@@ -115,7 +114,7 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
       resourceType = "OperationOutcome",
       text = {
         status = "generated",
-        div = "a resource matching the If-None-Exist query already exists"
+        div = "<div xmlns=\"http://www.w3.org/1999/xhtml\">a resource matching the If-None-Exist query already exists</div>"
       }
     }, status = 200},
     conditinal_update_many_resources_exist = {
