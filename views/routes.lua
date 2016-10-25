@@ -147,6 +147,7 @@ local function make_response(self, resource, http_status_code, headers)
   if request_headers["Prefer"] and request_headers["Prefer"] == "return=minimal" then
     body_output = ""
     -- leave content_type nil, so none is sent... doesn't actually work tho https://github.com/leafo/lapis/issues/485
+    content_type = config.no_return_content_type
   elseif request_headers["Prefer"] and request_headers["Prefer"] == "return=OperationOutcome" then
     body_output = to_json(config.canned_responses.prefer_successful_operationoutcome[1])
     content_type = make_return_content_type(desired_fhir_type)

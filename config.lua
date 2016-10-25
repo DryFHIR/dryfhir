@@ -78,6 +78,9 @@ config({"prod", "dockerprod"}, {
 
 -- template responses
 config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
+  -- workaround for https://github.com/leafo/lapis/issues/486
+  no_return_content_type = "NO_RETURN_CONTENT_TYPE",
+  -- default OperationOutputs to use that come from DryFHIR itself and not fhirbase
   canned_responses = {
     handle_404 = {
     {

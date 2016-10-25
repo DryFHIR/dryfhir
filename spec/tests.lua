@@ -424,7 +424,7 @@ describe("DryFHIR", function()
         assert.same(201, status)
         assert.same("", body)
         -- doesn't work yet
-        -- assert.same(nil, headers["Content-Type"])
+        assert.same(nil, headers["Content-Type"])
 
         status, body, headers = request("/Patient/"..existing_resource_id, {post = to_json(sent_resource), method = "PUT", headers = {["Prefer"] = "return=representation", ["Accept"] = "application/fhir+json"}})
 
