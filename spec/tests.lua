@@ -257,7 +257,8 @@ describe("DryFHIR", function()
         -- pull new id out
         local resource_id = from_json(received_resource_json).id
 
-        status, received_resource_json = request("/Patient/"..resource_id, {method = "GET"})
+        local headers
+        status, received_resource_json, headers = request("/Patient/"..resource_id, {method = "GET"})
         local received_resource = from_json(received_resource_json)
 
         sent_resource.meta = received_resource.meta
@@ -265,6 +266,8 @@ describe("DryFHIR", function()
         assert.same(sent_resource, received_resource)
 
         assert.same(200, status)
+
+        assert.truthy(headers["ETag"])
       end)
 
     it("should have a working #search operation via GET", function()

@@ -246,7 +246,18 @@ routes.read_resource = function(self)
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
 
-  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function))
+  -- construct the appropriate Last-Modified, ETag, and Location headers
+  local last_modified, etag, location
+  local base_url = get_base_url(self)
+  local resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
+  -- only do this for a resource that was created - ignore OperationOutcome resources
+  if resource.meta then
+    last_modified = date(resource.meta.lastUpdated):fmt("${http}")
+    etag = sformat('W/"%s"', resource.meta.versionId)
+    location = sformat("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
+  end
+
+  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), 200, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
 end
 
 routes.vread_resource = function(self)
@@ -254,7 +265,18 @@ routes.vread_resource = function(self)
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id, versionId = self.params.versionId}))
 
-  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function))
+  -- construct the appropriate Last-Modified, ETag, and Location headers
+  local last_modified, etag, location
+  local base_url = get_base_url(self)
+  local resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
+  -- only do this for a resource that was created - ignore OperationOutcome resources
+  if resource.meta then
+    last_modified = date(resource.meta.lastUpdated):fmt("${http}")
+    etag = sformat('W/"%s"', resource.meta.versionId)
+    location = sformat("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
+  end
+
+  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), 200, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
 end
 
 routes.update_resource = function(self)
