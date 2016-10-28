@@ -297,8 +297,9 @@ routes.update_resource = function(self)
   local created_or_updated_response_code = returned_resource.resourceType == self.params.type and 200 or 201
 
   -- add a contention guard if there is one
-  if ngx.req.get_headers()["if-match"] then
-    wrapped_data.ifMatch = string.match(ngx.req.get_headers()["if-match"], '^W/"(.+)"$')
+  local if_match = ngx.req.get_headers()["If-Match-DryFHIR"]
+  if if_match then
+    wrapped_data.ifMatch = string.match(if_match, '^W/"(.+)"$')
   end
 
   -- perform the requested update on the resource
