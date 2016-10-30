@@ -325,17 +325,25 @@ routes.delete_resource = function(self)
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
 
+  local headers, http_status_code = {}, nil
   local resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
-  -- fhirbase returns 404, but it needs to return 204
+  -- never existed: fhirbase returns 404, but it needs to return 204
   if resource.issue and resource.issue[1].extension[1].valueString == "404" then
     resource.issue[1].extension[1].valueString = "204"
+    http_status_code = 204
   end
-  -- need to return 204 on an already deleted resource
+  -- existed but deleted already: need to return 200
   if resource.issue and resource.issue[1].extension[1].valueString == "410" then
-    resource.issue[1].extension[1].valueString = "204"
+    resource.issue[1].extension[1].valueString = "200"
+    http_status_code = 200
+  end
+  -- just deleted: return 204
+  if resource.resourceType == self.params.type then
+    http_status_code = 204
+    headers["ETag"] = sformat('W/"%s"', resource.meta.versionId)
   end
 
-  return make_response(self, resource, 204)
+  return make_response(self, resource, http_status_code, headers)
 end
 
 local function populate_bundle_fullUrls(self, bundle)
