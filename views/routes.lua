@@ -325,7 +325,17 @@ routes.delete_resource = function(self)
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
 
-  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), 204)
+  local resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
+  -- fhirbase returns 404, but it needs to return 204
+  if resource.issue and resource.issue[1].extension[1].valueString == "404" then
+    resource.issue[1].extension[1].valueString = "204"
+  end
+  -- need to return 204 on an already deleted resource
+  if resource.issue and resource.issue[1].extension[1].valueString == "410" then
+    resource.issue[1].extension[1].valueString = "204"
+  end
+
+  return make_response(self, resource, 204)
 end
 
 local function populate_bundle_fullUrls(self, bundle)

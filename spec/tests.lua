@@ -215,8 +215,12 @@ describe("DryFHIR", function()
 
     it("should have a working #delete operation", function()
         -- DELETE [base]/[type]/[id]
-        local status, body = request("/Patient/"..existing_resource_id, {method = "DELETE"})
+        -- test an already existing resource
+        local status, _ = request("/Patient/"..existing_resource_id, {method = "DELETE"})
+        assert.same(204, status)
 
+        -- test deleting a resource that doesn't exist
+        status, _ = request("/Patient/non_existing_resource", {method = "DELETE"})
         assert.same(204, status)
       end)
 
