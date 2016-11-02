@@ -102,13 +102,13 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
       resourceType = "OperationOutcome",
       text = {
         status = "generated",
-        div = "<div xmlns=\"http://www.w3.org/1999/xhtml\">resource body is missing in a POST or a PUT operation</div>"
+        div = "<div xmlns=\"http://www.w3.org/1999/xhtml\">Resource body is missing in a POST or a PUT operation</div>"
       },
       issue = {
         [1] = {
           severity = "error",
-          code = "invalid" -- https://hl7-fhir.github.io/codesystem-issue-type.html#invalid
-          -- invalid content, as in, it is missing entirely
+          code = "invalid", -- https://hl7-fhir.github.io/codesystem-issue-type.html#invalid
+          diagnostics = "Resource body is missing in a POST or a PUT operation"
         }
       }
     }, status = 400},
