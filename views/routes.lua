@@ -91,9 +91,11 @@ local function get_return_content_type(self, content_type)
 end
 
 -- given a json resource from fhirbase, converts it to xml if desired by the requster
+-- returns resouce as a string
 local function save_resource(resource, fhir_type)
   -- don't pass resource, since it's the one we're getting back from fhirbase
   if fhir_type == "xml" then
+    print("to_fhir_xml: ", inspect(to_json(resource)))
     return to_fhir_xml(to_json(resource))
   end
 
@@ -336,6 +338,11 @@ routes.delete_resource = function(self)
   if resource.issue and resource.issue[1].extension[1].valueString == "410" then
     resource.issue[1].extension[1].valueString = "200"
     http_status_code = 200
+
+    -- fish out the versionId of the deleted resource version for the ETag, so you can do
+    -- version contention management when resource is re-created
+    local version_id = db.select("patient_history.version_id FROM public.patient_history WHERE patient_history.id = ? order by version_id desc limit 1", self.params.id)
+    headers["ETag"] = sformat('W/"%s"', version_id[1].version_id)
   end
   -- just deleted: return 204
   if resource.resourceType == self.params.type then
@@ -437,7 +444,7 @@ end
 routes.conditional_delete_resource = function(self)
   local operation = {name = "conditional delete", definition = "https://hl7-fhir.github.io/http.html#2.42.0.12.1", fhirbase_function = "fhir_update_resource"}
 
-  local http_status_code, resource
+  local headers, http_status_code, resource = {}, nil, nil
 
   -- fhirbase lacks conditional delete, so we do it ourselves
   local res = db.select("fhir_search(?);", to_json({resourceType = self.params.type, queryString = sformat("%s&_count=%s", self.req.parsed_url.query, config.conditinal_delete_max_resouces)}))
@@ -447,9 +454,15 @@ routes.conditional_delete_resource = function(self)
     return make_response(self, config.canned_responses.conditional_delete_resource_missing[1], config.canned_responses.conditional_delete_resource_missing.status)
   elseif bundle.total == 1 then
     operation.fhirbase_function = "fhir_delete_resource"
-    res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = bundle.entry[1].resource.id}))
+    local resource_id_to_delete = bundle.entry[1].resource.id
+    res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = resource_id_to_delete}))
     http_status_code = 204
     resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
+
+    -- though it's not in the spec for conditional delete, a normal delete would like an ETag for resource
+    -- contention, as does Touchstone - so we add it in
+    local version_id = db.select("patient_history.version_id FROM public.patient_history WHERE patient_history.id = ? order by version_id desc limit 1", resource_id_to_delete)
+    headers["ETag"] = sformat('W/"%s"', version_id[1].version_id)
   else
     -- if we've enabled deleting multiple resources with conditional delete, allow the delete
     if config.fhir_multiple_conditional_delete then
@@ -469,7 +482,7 @@ routes.conditional_delete_resource = function(self)
     end
   end
 
-  return make_response(self, resource, http_status_code)
+  return make_response(self, resource, http_status_code, headers)
 end
 
 return routes

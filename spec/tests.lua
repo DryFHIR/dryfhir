@@ -216,8 +216,9 @@ describe("DryFHIR", function()
     it("should have a working #delete operation", function()
         -- DELETE [base]/[type]/[id]
         -- test an already existing resource
-        local status, _ = request("/Patient/"..existing_resource_id, {method = "DELETE"})
+        local status, _, headers = request("/Patient/"..existing_resource_id, {method = "DELETE"})
         assert.same(204, status)
+        assert.truthy(headers["ETag"])
 
         -- test an already deleted resource
         status, _ = request("/Patient/"..existing_resource_id, {method = "DELETE"})
@@ -368,8 +369,9 @@ describe("DryFHIR", function()
         end)
 
         it("shouldn't change anything and return 200 if one matching resource already exists", function()
-            local status = request("/Patient", {post = to_json(test_resource), method = "POST", headers = {["If-None-Exist"] = "family=Lastname&given=Given"}})
+            local status, _, headers = request("/Patient", {post = to_json(test_resource), method = "POST", headers = {["If-None-Exist"] = "family=Lastname&given=Given"}})
             assert.same(200, status)
+            assert.truthy(headers["ETag"])
         end)
 
         it("shouldn't change anything and return a 412 error if multiple copies of the resource already exist", function()
