@@ -97,6 +97,21 @@ config({"development", "heroku", "test", "prod", "dockerdev", "dockerprod"}, {
         }
       }
     }, status = 404},
+    conditional_delete_deleted_many = {
+    {
+      resourceType = "OperationOutcome",
+      text = {
+        status = "generated",
+        div = "<div xmlns=\"http://www.w3.org/1999/xhtml\">Successfully deleted %s %s resources matching '%s' criteria</div>"
+      },
+      issue = {
+        [1] = {
+          severity = "information",
+          code = "information",
+          diagnostics = "Successfully deleted %s %s resources matching '%s' criteria"
+        }
+      }
+    }, status = 200},
     handle_missing_body = {
     {
       resourceType = "OperationOutcome",

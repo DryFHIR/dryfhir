@@ -73,6 +73,22 @@ local function read_resource(resource)
   return from_json(resource)
 end
 
+-- as FHIR loves to put data in {key="key for data", value="value"} tables,
+-- this helper function scans through a table of tables for the given key.
+-- Returns the matching values as a table or nil if none
+local function get_value_by_key(data, indexkey, indexvalue, valuekey)
+  assert(type(data) == "table")
+  local results = {}
+
+  for i = 1, #data do
+    if data[i][indexkey] == indexvalue then
+      results[#results+1] = data[i][valuekey]
+    end
+  end
+
+  return results[1] and results or nil
+end
+
 -- determines the appropriate request response content type, based in _format or headers
 local function get_return_content_type(self, content_type)
   if self.req.parsed_url.query and self.req.parsed_url.query:find("_format", 1, true) then
@@ -341,8 +357,11 @@ routes.delete_resource = function(self)
 
     -- fish out the versionId of the deleted resource version for the ETag, so you can do
     -- version contention management when resource is re-created
-    local version_id = db.select("patient_history.version_id FROM public.patient_history WHERE patient_history.id = ? order by version_id desc limit 1", self.params.id)
-    headers["ETag"] = sformat('W/"%s"', version_id[1].version_id)
+    if ngx.shared.known_resources:get(self.params.type) then -- prevent people from passing dodgy resource names
+      local resource_type = self.params.type:lower()
+      local version_id = db.select(sformat("%s_history.version_id FROM public.%s_history WHERE %s_history.id = ? order by version_id desc limit 1", resource_type, resource_type, resource_type), self.params.id)
+      headers["ETag"] = sformat('W/"%s"', version_id[1].version_id)
+    end
   end
   -- just deleted: return 204
   if resource.resourceType == self.params.type then
@@ -450,6 +469,13 @@ routes.conditional_delete_resource = function(self)
   local res = db.select("fhir_search(?);", to_json({resourceType = self.params.type, queryString = sformat("%s&_count=%s", self.req.parsed_url.query, config.conditinal_delete_max_resouces)}))
   local bundle = unpickle_fhirbase_result(res, "fhir_search")
 
+  -- get the actual query URL that was used by fhirbase for the search and sanitise it
+  local used_query_url = get_value_by_key(bundle.link, "relation", "self", "url")[1]
+  local remove_resource_type = sformat("/%s%%?", self.params.type)
+  local remove_count_and_page = sformat("&_count=%s&_page=0", config.conditinal_delete_max_resouces)
+  used_query_url = used_query_url:gsub(remove_resource_type, '')
+  used_query_url = used_query_url:gsub(remove_count_and_page, '')
+
   if bundle.total == 0 then
     return make_response(self, config.canned_responses.conditional_delete_resource_missing[1], config.canned_responses.conditional_delete_resource_missing.status)
   elseif bundle.total == 1 then
@@ -461,21 +487,29 @@ routes.conditional_delete_resource = function(self)
 
     -- though it's not in the spec for conditional delete, a normal delete would like an ETag for resource
     -- contention, as does Touchstone - so we add it in
-    local version_id = db.select("patient_history.version_id FROM public.patient_history WHERE patient_history.id = ? order by version_id desc limit 1", resource_id_to_delete)
-    headers["ETag"] = sformat('W/"%s"', version_id[1].version_id)
+    if ngx.shared.known_resources:get(self.params.type) then -- prevent people from passing dodgy resource names
+      local resource_type = self.params.type:lower()
+      local version_id = db.select(sformat("%s_history.version_id FROM public.%s_history WHERE %s_history.id = ? order by version_id desc limit 1", resource_type, resource_type, resource_type), resource_id_to_delete)
+      headers["ETag"] = sformat('W/"%s"', version_id[1].version_id)
+    end
   else
     -- if we've enabled deleting multiple resources with conditional delete, allow the delete
     if config.fhir_multiple_conditional_delete then
       operation.fhirbase_function = "fhir_delete_resource"
 
+      local successful_deletes = 0
       for i = 1, #bundle.entry do
         local matched_resource = bundle.entry[i].resource
 
         res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = matched_resource.id}))
+        local deleted_resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
+        if deleted_resource.resourceType == self.params.type then
+          successful_deletes = successful_deletes + 1
+        end
       end
 
-      http_status_code = 204
-      resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
+      resource = populate_canned_response(config.canned_responses.conditional_delete_deleted_many[1], successful_deletes, self.params.type, used_query_url)
+      http_status_code = config.canned_responses.conditional_delete_deleted_many.status
     else -- otherwise, disallow it
       http_status_code = 412
       resource = config.canned_responses.conditional_delete_multiple_disallowed[1]

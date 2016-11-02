@@ -484,8 +484,10 @@ describe("DryFHIR", function()
             status = request("/Patient", {post = to_json(test_resource), method = "POST"})
             assert.same(201, status)
 
-            status = request("/Patient/?name=name", {method = "DELETE"})
-            assert.same(204, status)
+            status, body = request("/Patient/?name=name", {method = "DELETE"})
+            assert.same(200, status)
+            -- should be able to find the original query in the body
+            assert.truthy(string.find(body, 'name=name'))
 
             status, body = request("/Patient/?name=name", {method = "GET", headers = {["Content-Type"] = "application/fhir+json"}})
             assert.same(200, status)
