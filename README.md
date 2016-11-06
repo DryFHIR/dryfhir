@@ -16,7 +16,7 @@ limitations under the License.
 
 # DryFHIR
 
-[DryFHIR](https://github.com/vadi2/dryfhir) is a simple FHIR server, not much more than a learning exersize of the FHIR specification at this stage.
+[DryFHIR](https://github.com/vadi2/dryfhir) is a simple FHIR server, not much more than a learning exersize of the FHIR specification at this stage. Feel free to join in hacking on the server in Lua!
 
 # Releases
 
