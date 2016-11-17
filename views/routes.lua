@@ -29,6 +29,8 @@ local sformat = string.format
 
 local routes = {}
 
+-- given a raw JSON response from fhirbase and the fhirbase function that generated it,
+-- returns the wrapped resource data inside
 local unpickle_fhirbase_result = function(result, fhirbase_function)
   return select(2, next(result))[fhirbase_function]
 end
@@ -89,20 +91,28 @@ local function get_value_by_key(data, indexkey, indexvalue, valuekey)
   return results[1] and results or nil
 end
 
--- determines the appropriate request response content type, based in _format or headers
-local function get_return_content_type(self, content_type)
-  if self.req.parsed_url.query and self.req.parsed_url.query:find("_format", 1, true) then
+-- returns the data for a request parameter, if it exists
+local function get_req_param(self, wanted_param)
+  if self.req.parsed_url.query and self.req.parsed_url.query:find(wanted_param, 1, true) then
     local query = unescape(self.req.parsed_url.query)
     local parameters = stringx.split(query, "&")
     for i = 1, #parameters do
       local param = parameters[i]
-      if string.find(param, "_format") then
-        local desired_format = string.match(param, "_format=(.*)")
-        return types[desired_format]
+      if string.find(param, wanted_param) then
+        local param_data = string.match(param, wanted_param.."=(.*)")
+        return param_data
       end
     end
   end
+end
 
+-- determines the appropriate request response content type, based in _format or headers
+local function get_return_content_type(self, content_type)
+  -- first, check if a _format header is present
+  local format = get_req_param(self, "_format")
+  if format then return types[format] end
+
+  -- if no _format is found, try to match it via Accept header
   return get_resource_type(content_type)
 end
 
@@ -264,6 +274,8 @@ routes.read_resource = function(self)
   local operation = {name = "read", definition = "http://hl7.org/fhir/http.html#read", fhirbase_function = "fhir_read_resource"}
 
   local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
+
+  print(self.req.parsed_url.query)
 
   -- construct the appropriate Last-Modified, ETag, and Location headers
   local last_modified, etag, location
