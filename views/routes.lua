@@ -272,15 +272,29 @@ end
 
 routes.read_resource = function(self)
   local operation = {name = "read", definition = "http://hl7.org/fhir/http.html#read", fhirbase_function = "fhir_read_resource"}
+  local resource
 
-  local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
+  local req_summary = get_req_param(self, "_summary")
+  -- fhirbase doesn't support read with a summary, but it does support search,
+  -- so work around a read by using a search
+  if req_summary then
+    local res = db.select("fhir_search(?);", to_json({resourceType = self.params.type, queryString = sformat("_id=%s&_summary=%s", self.params.id, req_summary)}))
+    local bundle = unpickle_fhirbase_result(res, "fhir_search")
 
-  print(self.req.parsed_url.query)
+    if bundle.total == 1 then
+      resource = bundle.entry[1].resource
+    end
+  end
+
+  -- if we didn't have a summary or nothing was found in the bundle for some reason, fallback to a plain GET
+  if not resource then
+    local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
+    resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
+  end
 
   -- construct the appropriate Last-Modified, ETag, and Location headers
   local last_modified, etag, location
   local base_url = get_base_url(self)
-  local resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
   -- only do this for a resource that was created - ignore OperationOutcome resources
   if resource.meta then
     last_modified = date(resource.meta.lastUpdated):fmt("${http}")
