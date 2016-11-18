@@ -44,7 +44,12 @@ describe("DryFHIR", function()
           }
         }
       },
-      active = true
+      active = true,
+      maritalStatus = {
+        system = "http://hl7.org/fhir/v3/MaritalStatus",
+        code = "M",
+        display = "Married"
+      }
     }
 
     local existing_resource, existing_resource_id
@@ -277,6 +282,89 @@ describe("DryFHIR", function()
         assert.same(200, status)
 
         assert.truthy(headers["ETag"])
+      end)
+
+    it("should support _summary=true on read #truesummary", function ()
+        local status, body, headers = request("/Patient", {post = to_json(generic_small_resource), headers = {["Content-Type"] = "application/fhir+json"}})
+        local received_resource = from_json(body)
+        local resource_id = received_resource.id
+
+        status, body, headers = request("/Patient/"..resource_id.."?_summary=true")
+        local resource = from_json(body)
+        assert.is_nil(resource.maritalStatus, nil)
+
+        assert.truthy(resource.meta)
+        assert.truthy(resource.meta.security)
+        assert.truthy(resource.meta.security[1])
+        assert.same(resource.meta.security[1].code, "SUBSETTED")
+        assert.same(resource.meta.security[1].display, "subsetted")
+        assert.same(resource.meta.security[1].system, "http://hl7.org/fhir/v3/ObservationValue")
+
+        assert.truthy(resource.name)
+        assert.truthy(resource.active)
+      end)
+
+    it("should support _summary=text on read #textsummary", function ()
+        local status, body, headers = request("/Patient", {post = to_json(generic_small_resource), headers = {["Content-Type"] = "application/fhir+json"}})
+        local received_resource = from_json(body)
+        local resource_id = received_resource.id
+
+        status, body, headers = request("/Patient/"..resource_id.."?_summary=text")
+        local resource = from_json(body)
+        assert.is_nil(resource.maritalStatus, nil)
+
+        assert.truthy(resource.text)
+
+        assert.truthy(resource.meta)
+        assert.truthy(resource.meta.security)
+        assert.truthy(resource.meta.security[1])
+        assert.same(resource.meta.security[1].code, "SUBSETTED")
+        assert.same(resource.meta.security[1].display, "subsetted")
+        assert.same(resource.meta.security[1].system, "http://hl7.org/fhir/v3/ObservationValue")
+
+        assert.is_nil(resource.name)
+        assert.is_nil(resource.active)
+      end)
+
+    it("should support _summary=data on read #datasummary", function ()
+        local status, body, headers = request("/Patient", {post = to_json(generic_small_resource), headers = {["Content-Type"] = "application/fhir+json"}})
+        local received_resource = from_json(body)
+        local resource_id = received_resource.id
+
+        status, body, headers = request("/Patient/"..resource_id.."?_summary=data")
+        local resource = from_json(body)
+
+        assert.is_nil(resource.text)
+
+        assert.truthy(resource.maritalStatus)
+        assert.truthy(resource.name)
+        assert.truthy(resource.active)
+        assert.truthy(resource.meta)
+        assert.truthy(resource.meta.security)
+        assert.truthy(resource.meta.security[1])
+        assert.same(resource.meta.security[1].code, "SUBSETTED")
+        assert.same(resource.meta.security[1].display, "subsetted")
+        assert.same(resource.meta.security[1].system, "http://hl7.org/fhir/v3/ObservationValue")
+      end)
+
+    it("should support _summary=false on read #falsesummary", function ()
+        local status, body, headers = request("/Patient", {post = to_json(generic_small_resource), headers = {["Content-Type"] = "application/fhir+json"}})
+        local received_resource = from_json(body)
+        local resource_id = received_resource.id
+
+        status, body, headers = request("/Patient/"..resource_id.."?_summary=false")
+        local resource = from_json(body)
+
+        if resource.meta and resource.meta.security and resource.meta.security[1] then
+            for i = 1, #resource.meta.security do
+                assert.is_not.equal(resource.meta.security[i].code, "SUBSETTED")
+            end
+        end
+
+        assert.truthy(resource.maritalStatus)
+        assert.truthy(resource.name)
+        assert.truthy(resource.active)
+        assert.truthy(resource.text)
       end)
 
     it("should have a working #search operation via GET", function()

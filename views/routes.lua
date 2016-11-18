@@ -21,6 +21,7 @@ local unescape    = require("lapis.util").unescape
 local from_json   = require("lapis.util").from_json
 local to_fhir_json = require("fhirformats").to_json
 local to_fhir_xml = require("fhirformats").to_xml
+local get_fhir_definition = require("fhirformats").get_fhir_definition
 local inspect     = require("inspect")
 local date        = require("date")
 local stringx     = require("pl.stringx")
@@ -121,7 +122,6 @@ end
 local function save_resource(resource, fhir_type)
   -- don't pass resource, since it's the one we're getting back from fhirbase
   if fhir_type == "xml" then
-    print("to_fhir_xml: ", inspect(to_json(resource)))
     return to_fhir_xml(to_json(resource))
   end
 
@@ -215,7 +215,7 @@ local function populate_metadata_searchparams(capabilitystatement)
 
 
   -- create a small cache of resourcename = resourcetable in conformance for easy access
-  local function make_capstatementmap()    
+  local function make_capstatementmap()
     local capstatementmap = {}
     for i = 1, #capabilitystatement.rest[1].resource do
       local resource = capabilitystatement.rest[1].resource[i]
@@ -230,7 +230,7 @@ local function populate_metadata_searchparams(capabilitystatement)
   -- loop through all search params and update resources in capabilitystatement accordingly
   for i = 1, #known_search_params.entry do
     local search_parameter_resource = known_search_params.entry[i].resource
-    
+
     -- find the correct CapabilityStatement resource declaration and create a searchParam field in it
     local corresponding_resource_in_capabilitystatement = capstatementmap[search_parameter_resource.base]
     corresponding_resource_in_capabilitystatement.searchParam = corresponding_resource_in_capabilitystatement.searchParam or {}
@@ -334,14 +334,45 @@ routes.read_resource = function(self)
   local resource
 
   local req_summary = get_req_param(self, "_summary")
-  -- fhirbase doesn't support read with a summary, but it does support search,
+  -- fhirbase doesn't support read with a summary, but it does support search for summary=true,
   -- so work around a read by using a search
-  if req_summary then
-    local res = db.select("fhir_search(?);", to_json({resourceType = self.params.type, queryString = sformat("_id=%s&_summary=%s", self.params.id, req_summary)}))
-    local bundle = unpickle_fhirbase_result(res, "fhir_search")
+  if req_summary and req_summary ~= "false" then
+    if req_summary == "true" then
+      local res = db.select("fhir_search(?);", to_json({resourceType = self.params.type, queryString = sformat("_id=%s&_summary=%s", self.params.id, req_summary)}))
+      local bundle = unpickle_fhirbase_result(res, "fhir_search")
 
-    if bundle.total == 1 then
-      resource = bundle.entry[1].resource
+      if bundle.total == 1 then
+        resource = bundle.entry[1].resource
+      end
+    elseif req_summary == "data" then
+      local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
+      resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
+      resource.text = nil
+    elseif req_summary == "text" then
+      local res = db.select(operation.fhirbase_function .. "(?);", to_json({resourceType = self.params.type, id = self.params.id}))
+      local unpruned_resource = unpickle_fhirbase_result(res, operation.fhirbase_function)
+
+      -- "Return only the "text" element, the 'meta' element, and any mandatory elements"
+      resource = {}
+      for element, data in pairs(unpruned_resource) do
+        if element == "resourceType"
+        or element == "meta"
+        or element == "id"
+        or element == "text"
+        or get_fhir_definition(unpruned_resource.resourceType, element)._min == 1 then
+          resource[element] = data
+        end
+      end
+    end
+
+    if resource then
+      -- add the SUBSETTED tag
+      resource.meta.security = resource.meta.security or {}
+      resource.meta.security[#resource.meta.security+1] = {
+        system = "http://hl7.org/fhir/v3/ObservationValue",
+        code = "SUBSETTED",
+        display = "subsetted"
+      }
     end
   end
 
@@ -361,7 +392,7 @@ routes.read_resource = function(self)
     location = sformat("%s/%s/%s/_history/%s", base_url, resource.resourceType, resource.id, resource.meta.versionId)
   end
 
-  return make_response(self, unpickle_fhirbase_result(res, operation.fhirbase_function), 200, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
+  return make_response(self, resource, 200, {["Last-Modified"] = last_modified, ["ETag"] = etag, ["Location"] = location})
 end
 
 routes.vread_resource = function(self)
