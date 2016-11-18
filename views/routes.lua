@@ -204,6 +204,63 @@ routes.handle_404 = function(self)
   return(make_response(self, populate_canned_response(config.canned_responses.handle_404[1], table.concat(self.resource_list, ', ')), config.canned_responses.handle_404.status))
 end
 
+-- given a CapabilityStatement resource, populate all resources
+-- we have with supported search parameters
+
+-- returns the same resource back but now with search parameters
+local function populate_metadata_searchparams(capabilitystatement)
+  -- query fhirbase once (for efficiency reasons) for all the search parameters we know of
+  local result_known_search_params = db.select("fhir_search(?);", to_json({resourceType = "SearchParameter", queryString = "_count=1000000"}))
+  local known_search_params = unpickle_fhirbase_result(result_known_search_params, "fhir_search")
+
+
+  -- create a small cache of resourcename = resourcetable in conformance for easy access
+  local function make_capstatementmap()    
+    local capstatementmap = {}
+    for i = 1, #capabilitystatement.rest[1].resource do
+      local resource = capabilitystatement.rest[1].resource[i]
+      capstatementmap[resource.type] = resource
+    end
+
+    return capstatementmap
+  end
+
+  local capstatementmap = make_capstatementmap()
+
+  -- loop through all search params and update resources in capabilitystatement accordingly
+  for i = 1, #known_search_params.entry do
+    local search_parameter_resource = known_search_params.entry[i].resource
+    
+    -- find the correct CapabilityStatement resource declaration and create a searchParam field in it
+    local corresponding_resource_in_capabilitystatement = capstatementmap[search_parameter_resource.base]
+    corresponding_resource_in_capabilitystatement.searchParam = corresponding_resource_in_capabilitystatement.searchParam or {}
+    corresponding_resource_in_capabilitystatement.searchParam[#corresponding_resource_in_capabilitystatement.searchParam+1] = {}
+    local searchParam = corresponding_resource_in_capabilitystatement.searchParam[#corresponding_resource_in_capabilitystatement.searchParam]
+
+    searchParam.name = search_parameter_resource.name
+    searchParam.definition = search_parameter_resource.url
+    searchParam.type = search_parameter_resource.type
+    searchParam.target = search_parameter_resource.target
+    searchParam.modifier = {}
+
+    if searchParam.type ~= "composite" then
+      searchParam.modifier[#searchParam.modifier+1] = "missing"
+    end
+    if searchParam.type == "string" then
+      searchParam.modifier[#searchParam.modifier+1] = "exact"
+      searchParam.modifier[#searchParam.modifier+1] = "contains"
+    end
+    if searchParam.type == "uri" then
+      searchParam.modifier[#searchParam.modifier+1] = "below"
+    end
+
+
+    -- searchParam.chain
+  end
+
+  return capabilitystatement
+end
+
 routes.metadata = function (self)
   local operation = {name = "conformance", definition = "http://hl7.org/fhir/http.html#conformance", fhirbase_function = "fhir_conformance"}
 
@@ -230,6 +287,8 @@ routes.metadata = function (self)
       resource.conditionalDelete = "multiple"
     end
   end
+
+  conformance = populate_metadata_searchparams(conformance)
 
   return make_response(self, conformance)
 end
